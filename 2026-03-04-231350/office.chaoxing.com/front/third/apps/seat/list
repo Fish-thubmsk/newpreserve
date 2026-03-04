@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+  <meta name="format-detection" content="telephone=no">
+  <title>座位预约</title>
+<base href="https://office.chaoxing.com/">
+<script type="text/javascript">
+  var photoUrl = 'http://photo.chaoxing.com'
+  var panUrl = 'http://pan-yz.chaoxing.com'
+  var noteUrl = 'http://noteyd.chaoxing.com'
+  var staticDomain = 'https://office-static.chaoxing.com/r/'
+  photoUrl = document.location.protocol + photoUrl.split(":")[1]
+  panUrl = document.location.protocol + panUrl.split(":")[1]
+  noteUrl = document.location.protocol + noteUrl.split(":")[1]
+  if (staticDomain !== '') {
+    staticDomain = document.location.protocol + staticDomain.split(":")[1]
+  }
+</script>
+
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/reset.css">
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/seat.css">
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/apps/reserve/iphonex.css">
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/apps/reserve/reserve_mobile.css">
+<script src="https://office-static.chaoxing.com/r/staticreserve/js/lib/jquery/jquery.min.js"></script>
+<script src="https://office-static.chaoxing.com/r/staticreserve/js/lib/wy/YiDunProtector-Web-2.1.4.js"></script>
+<script>document.write("<script src='https://captcha.chaoxing.com/load-d.min.js?t=" + parseInt(Date.now()/60000) + "'><\/script>");</script>
+<script>document.write("<script src='https://captcha.chaoxing.com/light.js?t=" + parseInt(Date.now()/60000) + "'><\/script>");</script>
+<script type="text/javascript" src="//api.map.baidu.com/api?type=webgl&v=1.0&ak=p7HrxjMD6R1hbPFP9sNgkfHjsNZumBai"></script>
+<script>document.write("<script src='https://cstaticdun.126.net/load.min.js?t=" + parseInt(Date.now()/60000) + "'><\/script>");</script>
+<script type="text/javascript" src="https://office-static.chaoxing.com/r/staticreserve/js/lib/requirejs/require.min.js"></script>
+<script type="text/javascript" src="https://office-static.chaoxing.com/r/staticreserve/js/src/front/apps/seat/main.js?t=2026021017"></script>
+<script>requirejs.config({urlArgs: 't=2026021017'})</script>
+</head>
+<body>
+<div class="screen" v-cloak>
+  <div class="scr_top">
+    <div class="scr_time" id="scr_time">
+      <ul class='mTabul'>
+        <li :class="{active: data.checked}" v-for="(data,index) in screenTimes" @click="choseTime(data.day,index)">
+          <div class="mtab_info">
+            <h6 class="mtab_time">{{data.time}}</h6>
+            <p class="mtab_eng">{{data.week}}</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+    <div class="scr_icon" @click="$choseLevel(0, null, 0, false)"><span></span></div>
+  </div>
+  <ul class="scr_cont" v-if="!isNotExistData">
+    <li class="scr_list" v-for="data in seatRoomList" v-if="data.authShow">
+      <h6 class="scr_title owt1">
+        {{data.firstLevelName}}<span v-if="data.secondLevelName">-{{data.secondLevelName}}</span><span v-if="data.thirdLevelName">-{{data.thirdLevelName}}</span></h6>
+      <p class="scr_open">开放时间
+        <span v-if="data.startTime && data.endTime">{{data.startTime | format('HH:mm')}}-{{data.endTime | format('HH:mm')}}</span>
+        <span v-else>暂未开放</span>
+      </p>
+      <p class="scr_use">
+        座位数<span>{{data.capacity}}</span>
+        <template v-if="curusedShow">
+          <label style="margin-left: 10px">当前剩余数<span>{{data.capacity > data.curUsedCount ? (data.capacity - data.curUsedCount) : 0}}</span></label>
+        </template>
+      </p>
+      <span class="scr_sch" @click="toChoseSeat(data)"></span>
+    </li>
+    
+    <div></div>
+  </ul>
+  <div class="noData" v-if="isNotExistData">
+    <div class="nera_nodata_img"></div>
+    <p class="near_nodata_word">暂无数据</p>
+  </div>
+  
+  <div class="screenMask" v-if="levelShow || initListPopShow" @click="cancel"></div>
+  
+  <div class="look_img" v-if="seatPlanShow(seatConfig)" @click="openSeatPlan(seatConfig)">区域<br/>分布</div>
+  
+  <div class="gscreen" v-if="levelShow">
+    <h6 class="gsc_tel">筛选条件</h6>
+    <div class="gsc_area">
+      <div class="gsc_cont">
+        <div class="gsc_data" v-if="firstLevels.length > 0">
+          <h6 class="gsc_title">{{seatConfig.roomFirstLevelDict}}</h6>
+          <ul class="gsc_list">
+            <li class="gsc_type" :class="{select: data.checked}" v-for="(data,index) in firstLevels" @click="$choseLevel(index,data.firstLevelName,1)">{{data.firstLevelName}}</li>
+          </ul>
+        </div>
+        <div class="gsc_data" v-if="secondLevels.length > 0">
+          <h6 class="gsc_title">{{seatConfig.roomSecondLevelDict}}</h6>
+          <ul class="gsc_list">
+            <li class="gsc_type" :class="{select: data.checked}" v-for="(data,index) in secondLevels" @click="$choseLevel(index,data.secondLevelName,2)">{{data.secondLevelName}}
+            </li>
+          </ul>
+        </div>
+        <div class="gsc_data" v-if="thirdLevels.length > 0">
+          <h6 class="gsc_title">{{seatConfig.roomThirdLevelDict}}</h6>
+          <ul class="gsc_list">
+            <li class="gsc_type" :class="{select: data.checked}" v-for="(data,index) in thirdLevels" @click="$choseLevel(index,data.thirdLevelName,3)">{{data.thirdLevelName}}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="gsc_btns">
+      <span class="gsc_cal" @click="reChose">重置</span>
+      <span class="gsc_sure" @click="confirm">筛选</span>
+    </div>
+  </div>
+  <div class="reserve-common__pop" v-if="initListPopShow">
+    <div class="reserve-common__header">选择对象<i class="icon-close" @click="initListPopShow=false"></i></div>
+    <div class="reserve-common__content" empty-text="暂无筛选标签">
+      <div class="option__wrapper" v-if="firstLevels.length > 0">
+        <h2 class="option__title">{{seatConfig.roomFirstLevelDict}}</h2>
+        <div class="option__cont">
+          <ul class="select-label__list">
+            <li class="select-label__item" :class="{'select-label__item--active': data.checked}" v-for="(data,index) in firstLevels" @click="$choseLevel(index,data.firstLevelName,1)">{{data.firstLevelName}}</li>
+          </ul>
+        </div>
+      </div>
+      <div class="option__wrapper" v-if="secondLevels.length > 0">
+        <h2 class="option__title">{{seatConfig.roomSecondLevelDict}}</h2>
+        <div class="option__cont">
+          <ul class="select-label__list">
+            <li class="select-label__item" :class="{'select-label__item--active': data.checked}" v-for="(data,index) in secondLevels" @click="$choseLevel(index,data.secondLevelName,2)">{{data.secondLevelName}}</li>
+          </ul>
+        </div>
+      </div>
+      <div class="option__wrapper" v-if="thirdLevels.length > 0">
+        <h2 class="option__title">{{seatConfig.roomThirdLevelDict}}</h2>
+        <div class="option__cont">
+          <ul class="select-label__list">
+            <li class="select-label__item" :class="{'select-label__item--active': data.checked}" v-for="(data,index) in thirdLevels" @click="$choseLevel(index,data.thirdLevelName,3)">{{data.thirdLevelName}}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="reserve-common__footer">
+      <button class="reserve-common__button" @click="confirm">筛选</button>
+    </div>
+  </div>
+  <ul id="viewerImg" style="width:0;height:0;">
+    <li><img id="img" :src="viewerObj.planUrl" width="0" height="0"/></li>
+  </ul>
+</div>
+<script>
+  require(['jquery', 'Vue', 'appUtils', 'moment', 'popup', 'viewer', 'seatBaseUtils', 'baseUtils', 'iscroll', 'dropload'], function ($, Vue, AppUtils, moment, popup, Viewer,
+      seatBaseUtils, baseUtils) {
+    'use strict'
+    var deptIdEnc = '4a18e12602b24c8c',
+        serverNow = new Date('2026-03-04T23:10:03.532+08:00')// 服务器当前日期
+    function loadData(url, data) {
+      return $.getJSON(url, data)
+    }
+    function loadSeatRoomList(vm) {
+      var droploadOpt = {
+        time: '',
+        cpage: 1,
+        pageSize: 100,
+        firstLevelName: vm.firstLevelName,
+        secondLevelName: vm.secondLevelName,
+        thirdLevelName: vm.thirdLevelName,
+        day: vm.choseDay.getFullYear() + '-' + baseUtils.twoDigits(vm.choseDay.getMonth() + 1) + '-' + baseUtils.twoDigits(vm.choseDay.getDate()),
+        deptIdEnc: deptIdEnc
+      }
+      var _this = vm
+      var dropload = $('.scr_cont').dropload({
+        scrollArea: $('.scr_cont'),
+        threshold: 200,
+        domDown: {
+          domClass: 'isbottom',
+          domNoData: ''
+        },
+        loadDownFn: function (me) {
+          loadData('data/apps/seat/room/list', droploadOpt).then(function (json) {
+            var seatRoomList = json.data.seatRoomList
+            seatRoomList = reLoadData(seatRoomList, _this.choseDay, _this)
+            _this.seatRoomList = _this.seatRoomList.concat(seatRoomList)
+            if (_this.seatRoomList.length === 0) {
+              _this.isNotExistData = true
+            }
+            //用于判断当数据只有一页情况下隐藏数据结尾提示并锁定数据
+            if (json.data.totalPage === 1) {
+              $('.isbottom').hide()
+            } else {
+              $('.isbottom').show()
+            }
+            droploadOpt.cpage = droploadOpt.cpage + 1
+            if (json.data.seatRoomList.length < droploadOpt.pageSize || droploadOpt.cpage > json.data.totalPage) {
+              // 锁定
+              me.lock()
+              // 无数据
+              me.noData()
+            }
+            vm.$nextTick(function () {
+              me.delayResetload()
+            })
+          })
+        }
+      })
+      return {
+        dropload: dropload,
+        droploadOpt: droploadOpt
+      }
+    }
+    //重新构造区域列表数据
+    function reLoadData(seatRoomList, date, _this) {
+      var year = '1970/01/01 '
+      var ymd = '1970-01-01 '
+      var weekDay = date.getDay()
+      seatRoomList.forEach(function (value) {
+        value.isOpen = 0
+        //1. 过滤特殊开放时间
+        if (_this.seatConfig.timeType === 0) {
+          if (value.seatSpecialTime) {
+            switch (weekDay) {
+              case 0:
+                value.startTime = new Date(year + value.seatSpecialTime.sunStartTime)
+                value.endTime = new Date(year + value.seatSpecialTime.sunEndTime)
+                value.isOpen = value.seatSpecialTime.sunOpen
+                break
+              case 1:
+                value.startTime = new Date(year + value.seatSpecialTime.monStartTime)
+                value.endTime = new Date(year + value.seatSpecialTime.monEndTime)
+                value.isOpen = value.seatSpecialTime.monOpen
+                break
+              case 2:
+                value.startTime = new Date(year + value.seatSpecialTime.tuesStartTime)
+                value.endTime = new Date(year + value.seatSpecialTime.tuesEndTime)
+                value.isOpen = value.seatSpecialTime.tuesOpen
+                break
+              case 3:
+                value.startTime = new Date(year + value.seatSpecialTime.wedStartTime)
+                value.endTime = new Date(year + value.seatSpecialTime.wedEndTime)
+                value.isOpen = value.seatSpecialTime.wedOpen
+                break
+              case 4:
+                value.startTime = new Date(year + value.seatSpecialTime.thurStartTime)
+                value.endTime = new Date(year + value.seatSpecialTime.thurEndTime)
+                value.isOpen = value.seatSpecialTime.thurOpen
+                break
+              case 5:
+                value.startTime = new Date(year + value.seatSpecialTime.friStartTime)
+                value.endTime = new Date(year + value.seatSpecialTime.friEndTime)
+                value.isOpen = value.seatSpecialTime.friOpen
+                break
+              case 6:
+                value.startTime = new Date(year + value.seatSpecialTime.satStartTime)
+                value.endTime = new Date(year + value.seatSpecialTime.satEndTime)
+                value.isOpen = value.seatSpecialTime.satOpen
+                break
+              default:
+                break
+            }
+          }
+          if (value.seatHoildayTime && value.seatHoildays) {
+            if (baseUtils.hoilday(moment(date), value.seatHoildays)) {
+              switch (weekDay) {
+                case 0:
+                  value.startTime = new Date(year + value.seatHoildayTime.sunStartTime)
+                  value.endTime = new Date(year + value.seatHoildayTime.sunEndTime)
+                  value.isOpen = value.seatHoildayTime.sunOpen
+                  break
+                case 1:
+                  value.startTime = new Date(year + value.seatHoildayTime.monStartTime)
+                  value.endTime = new Date(year + value.seatHoildayTime.monEndTime)
+                  value.isOpen = value.seatHoildayTime.monOpen
+                  break
+                case 2:
+                  value.startTime = new Date(year + value.seatHoildayTime.tuesStartTime)
+                  value.endTime = new Date(year + value.seatHoildayTime.tuesEndTime)
+                  value.isOpen = value.seatHoildayTime.tuesOpen
+                  break
+                case 3:
+                  value.startTime = new Date(year + value.seatHoildayTime.wedStartTime)
+                  value.endTime = new Date(year + value.seatHoildayTime.wedEndTime)
+                  value.isOpen = value.seatHoildayTime.wedOpen
+                  break
+                case 4:
+                  value.startTime = new Date(year + value.seatHoildayTime.thurStartTime)
+                  value.endTime = new Date(year + value.seatHoildayTime.thurEndTime)
+                  value.isOpen = value.seatHoildayTime.thurOpen
+                  break
+                case 5:
+                  value.startTime = new Date(year + value.seatHoildayTime.friStartTime)
+                  value.endTime = new Date(year + value.seatHoildayTime.friEndTime)
+                  value.isOpen = value.seatHoildayTime.friOpen
+                  break
+                case 6:
+                  value.startTime = new Date(year + value.seatHoildayTime.satStartTime)
+                  value.endTime = new Date(year + value.seatHoildayTime.satEndTime)
+                  value.isOpen = value.seatHoildayTime.satOpen
+                  break
+                default:
+                  break
+              }
+            }
+          }
+        }
+        if (_this.seatConfig.timeType === 1) {
+          weekDay = weekDay === 0 ? 7 : weekDay
+          var seatIntervalList
+          if (value.hoildayIntervalMap && baseUtils.hoilday(moment(date), value.seatHoildays)) {
+            seatIntervalList = value.hoildayIntervalMap[weekDay] || []
+          } else {
+            seatIntervalList = value.intervalMap[weekDay] || []
+          }
+          if (seatIntervalList.length > 0) {
+            value.startTime = new Date(year + seatIntervalList[0].startTime)
+            value.endTime = new Date(year + seatIntervalList[seatIntervalList.length - 1].endTime)
+          } else {
+            value.isOpen = 1
+            value.startTime = ''
+            value.endTime = ''
+          }
+        }
+        //2. 过滤暂停开放日期
+        if (value.seatPauseDate && value.seatPauseDate.dateJson) {
+          var dateJson = JSON.parse(value.seatPauseDate.dateJson)
+          dateJson.forEach(function (d) {
+            if (_this.seatConfig.timeType === 0) {
+              var sDate = new Date(d.startDate)
+              var eDate = new Date(d.endDate)
+              if (date.getTime() >= sDate.getTime() && date.getTime() <= eDate.getTime()) {
+                value.isOpen = 1
+              }
+            } else {
+              weekDay = weekDay === 0 ? 7 : weekDay
+              var seatIntervalList = value.intervalMap[weekDay] || []
+              var startTimeStop = moment(d.startDate)
+              var endTimeStop = moment(d.endDate)
+              var stopNum = 0;
+              for (var i = 0; i < seatIntervalList.length; i++) {
+                var temp = seatIntervalList[i]
+                if (!(endTimeStop.isBefore(moment(ymd + temp.startTime)) || startTimeStop.isAfter(moment(ymd + temp.endTime)))) {
+                  stopNum++
+                }
+              }
+              if (stopNum === seatIntervalList.length) {
+                value.isOpen = 1
+              }
+            }
+          })
+        }
+      })
+      seatBaseUtils.filterRolePermission(_this, seatRoomList)
+      return seatRoomList
+    }
+    function getTimeByWeek(reserveBeforeDay) {
+      var dateArr = []
+      var now = moment(serverNow)
+      var weekArr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat']
+      for (var y = 0; y < reserveBeforeDay; y++) {
+        var date = now.clone().add(y, 'days')
+        dateArr.push({
+          day: moment(date).format('YYYY-MM-DD'),
+          time: moment(date).format('MM-DD'),
+          week: weekArr[date.day()],
+          checked: y == 0 ? true : false
+        })
+      }
+      return dateArr
+    }
+    new Vue({
+      el: '.screen',
+      data: function () {
+        return {
+          seatConfig: {},//基础配置
+          seatRoomList: [],
+          firstLevels: [],
+          secondLevels: [],
+          thirdLevels: [],
+          firstLevelName: '',
+          secondLevelName: '',
+          thirdLevelName: '',
+          screenCondition: {firstLevelName: '', secondLevelName: '', thirdLevelName: ''},
+          levelShow: false,
+          showAddItem: false,
+          isNotExistData: false,
+          screenTimes: [],
+          viewerObj: {
+            viewer: null,
+            planUrl: ''
+          },
+          choseDay: new Date(moment(serverNow).format('YYYY-MM-DD')),
+          roleListSelf: [], //用户所属角色
+          officeDomain: '',
+          curusedShow: false, //是否显示剩余座位数
+          initListPopShow: false
+        }
+      },
+      methods: {
+        choseTime: function (day, index) {
+          var _this = this
+          for (var i = 0; i < this.screenTimes.length; i++) {
+            if (index == i) {
+              this.screenTimes[index].checked = true
+            } else {
+              this.screenTimes[i].checked = false
+            }
+          }
+          _this.choseDay = new Date(day)
+          _this.droploader.droploadOpt.cpage = 1
+          _this.droploader.droploadOpt.day = _this.choseDay.getFullYear() + '-' + baseUtils.twoDigits(_this.choseDay.getMonth() + 1) + '-' + baseUtils.twoDigits(_this.choseDay.getDate())
+          _this.seatRoomList = []
+          _this.$nextTick(function () {
+            _this.droploader.dropload.unlock()
+            _this.droploader.dropload.noData(false)
+            _this.droploader.dropload.resetload()
+          })
+        },
+        toChoseSeat: function (data) {
+          if (data.isOpen === 1) {
+            popup.alert('该区域今日暂停预约')
+            return
+          }
+          var day = ''
+          for (var i = 0; i < this.screenTimes.length; i++) {
+            if (this.screenTimes[i].checked) {
+              day = this.screenTimes[i].day
+              break
+            } else {
+              this.screenTimes[i].checked = false
+            }
+          }
+          if (moment().valueOf() < data.beforeOpenTimeStamp) {
+            popup.alert('暂未开放')
+            return
+          }
+          if (day != '') {
+            /**
+             * 此处镜像使用注释的跳转 不用officeDomain 否则可能报错
+             */
+            location.href = this.officeDomain + '/front/third/apps/seat/select?deptIdEnc=' + deptIdEnc
+                + '&id=' + data.id
+                + '&day=' + day
+                + '&backLevel=2'
+                + '&fidEnc=' + deptIdEnc
+            // location.href = location.origin + '' + '/front/third/apps/seat/select?deptIdEnc=' + deptIdEnc
+            //     + '&id=' + data.id
+            //     + '&day=' + day
+            //     + '&backLevel=2'
+            //     + '&fidEnc=' + deptIdEnc
+          } else {
+            popup.alert('请选择日期')
+          }
+        },
+        $choseLevel: function (index, name, type, initFilter) {
+          var _this = this
+          if (type == 0) {
+            //判断二三级分类名集合是否需要清空
+            if (_this.screenCondition.firstLevelName == '') {
+              _this.secondLevels = []
+              _this.thirdLevels = []
+            } else {
+              if (_this.secondLevels.length < 1) {
+                loadData('data/apps/seat/levels', {deptIdEnc: deptIdEnc, type: 1, firstLevelName: _this.firstLevelName}).then(function (json) {
+                  if (json.success && json.data.levels.length > 0) {
+                    _this.secondLevels = json.data.levels
+                    for (var i = 0; i < _this.secondLevels.length; i++) {
+                      _this.secondLevels[i]['checked'] = false
+                    }
+                  }
+                })
+              }
+            }
+            if (_this.screenCondition.secondLevelName == '') {
+              _this.thirdLevels = []
+            } else {
+              if (_this.thirdLevels.length < 1) {
+                loadData('data/apps/seat/levels', {deptIdEnc: deptIdEnc, type: 2, firstLevelName: _this.firstLevelName, secondLevelName: _this.secondLevelName})
+                    .then(function (json) {
+                      if (json.success && json.data.levels.length > 0) {
+                        _this.thirdLevels = json.data.levels
+                        for (var i = 0; i < _this.thirdLevels.length; i++) {
+                          _this.thirdLevels[i]['checked'] = false
+                        }
+                      }
+                    })
+              }
+            }
+            if (!initFilter) {
+              _this.levelShow = true
+            }
+            if (_this.firstLevels.length < 1) {//一级分类下有数据则不需要重新请求
+              loadData('data/apps/seat/levels', {deptIdEnc: deptIdEnc, type: type}).then(function (json) {
+                if (json.success && json.data.levels.length > 0) {
+                  _this.firstLevels = json.data.levels
+                  for (var i = 0; i < _this.firstLevels.length; i++) {
+                    _this.firstLevels[i]['checked'] = false
+                  }
+                }
+              })
+            }
+          }
+          if (type == 1) {//根据一级名联动二级
+            var levels = _this.firstLevels
+            for (var i = 0; i < levels.length; i++) {
+              if (i == index) {
+                levels[index].checked = !levels[index].checked
+              } else {
+                levels[i].checked = false
+              }
+            }
+            if (levels[index].checked) {
+              _this.firstLevelName = name
+              _this.thirdLevels = []
+              loadData('data/apps/seat/levels', {deptIdEnc: deptIdEnc, type: type, firstLevelName: _this.firstLevelName}).then(function (json) {
+                if (json.success && json.data.levels.length > 0) {
+                  _this.secondLevels = json.data.levels
+                  for (var i = 0; i < _this.secondLevels.length; i++) {
+                    _this.secondLevels[i]['checked'] = false
+                  }
+                }
+              })
+            } else {
+              _this.secondLevels = []
+              _this.thirdLevels = []
+            }
+            _this.$forceUpdate()
+          }
+          if (type == 2) {//根据二级名联动三级
+            var levels = _this.secondLevels
+            for (var i = 0; i < levels.length; i++) {
+              if (i == index) {
+                levels[index].checked = !levels[index].checked
+              } else {
+                levels[i].checked = false
+              }
+            }
+            if (levels[index].checked) {
+              _this.secondLevelName = name
+              loadData('data/apps/seat/levels', {deptIdEnc: deptIdEnc, type: type, firstLevelName: _this.firstLevelName, secondLevelName: _this.secondLevelName})
+                  .then(function (json) {
+                    if (json.success && json.data.levels.length > 0) {
+                      _this.thirdLevels = json.data.levels
+                      for (var i = 0; i < _this.thirdLevels.length; i++) {
+                        _this.thirdLevels[i]['checked'] = false
+                      }
+                    }
+                  })
+            } else {
+              _this.thirdLevels = []
+            }
+            _this.$forceUpdate()
+          }
+          if (type == 3) {
+            var levels = _this.thirdLevels
+            for (var i = 0; i < levels.length; i++) {
+              if (i == index) {
+                levels[index].checked = !levels[index].checked
+              } else {
+                levels[i].checked = false
+              }
+            }
+            if (levels[index].checked) {
+              _this.thirdLevelName = name
+            }
+            _this.$forceUpdate()
+          }
+        },
+        confirm: function () {
+          this.levelShow = false
+          this.initListPopShow = false
+          this.droploader.droploadOpt.cpage = 1
+          this.screenCondition.firstLevelName = ''
+          for (var i = 0; i < this.firstLevels.length; i++) {
+            if (this.firstLevels[i].checked) {
+              this.screenCondition.firstLevelName = this.firstLevels[i].firstLevelName
+            }
+          }
+          this.screenCondition.secondLevelName = ''
+          for (var i = 0; i < this.secondLevels.length; i++) {
+            if (this.secondLevels[i].checked) {
+              this.screenCondition.secondLevelName = this.secondLevels[i].secondLevelName
+            }
+          }
+          this.screenCondition.thirdLevelName = ''
+          for (var i = 0; i < this.thirdLevels.length; i++) {
+            if (this.thirdLevels[i].checked) {
+              this.screenCondition.thirdLevelName = this.thirdLevels[i].thirdLevelName
+              break
+            }
+          }
+          this.loadSeatRoomListData(this.screenCondition)
+        },
+        cancel: function () {
+          if (this.levelShow) {
+            for (var i = 0; i < this.firstLevels.length; i++) {
+              this.firstLevels[i].checked = false
+              if (this.firstLevels[i].firstLevelName == this.screenCondition.firstLevelName) {
+                this.firstLevels[i].checked = true
+              }
+            }
+            for (var i = 0; i < this.secondLevels.length; i++) {
+              this.secondLevels[i].checked = false
+              if (this.secondLevels[i].secondLevelName == this.screenCondition.secondLevelName) {
+                this.secondLevels[i].checked = true
+              }
+            }
+            for (var i = 0; i < this.thirdLevels.length; i++) {
+              this.thirdLevels[i].checked = false
+              if (this.thirdLevels[i].thirdLevelName == this.screenCondition.thirdLevelName) {
+                this.thirdLevels[i].checked = true
+              }
+            }
+            this.confirm()
+            this.levelShow = false
+          }
+        },
+        reChose: function () {
+          for (var i = 0; i < this.firstLevels.length; i++) {
+            if (this.firstLevels[i].checked) {
+              this.firstLevels[i].checked = false
+            }
+          }
+          for (var i = 0; i < this.secondLevels.length; i++) {
+            if (this.secondLevels[i].checked) {
+              this.secondLevels[i].checked = false
+            }
+          }
+          for (var i = 0; i < this.thirdLevels.length; i++) {
+            if (this.thirdLevels[i].checked) {
+              this.thirdLevels[i].checked = false
+            }
+          }
+          this.$forceUpdate()
+        },
+        loadSeatRoomListData: function (screenCondition) {
+          var _this = this
+          _this.searched = true
+          _this.droploader.droploadOpt.firstLevelName = screenCondition.firstLevelName
+          _this.droploader.droploadOpt.secondLevelName = screenCondition.secondLevelName
+          _this.droploader.droploadOpt.thirdLevelName = screenCondition.thirdLevelName
+          _this.seatRoomList = []
+          _this.$nextTick(function () {
+            _this.droploader.dropload.unlock()
+            _this.droploader.dropload.noData(false)
+            _this.droploader.dropload.resetload()
+          })
+        },
+        seatPlanShow: function (e) {
+          if (e.planUrl) {
+            return true
+          }
+          return false
+        },
+        openSeatPlan: function (e) {
+          this.viewerObj.planUrl = e.planUrl
+          this.$nextTick(function () {
+            if (this.viewerObj.viewer !== null) {
+              this.viewerObj.viewer.update()
+            }
+            document.getElementById('img').click()
+          })
+        }
+      },
+      filters: {
+        format: function (value, formater) {
+          return moment(value).format(formater)
+        }
+      },
+      mounted: function () {
+        if (this.viewerObj.viewer === null) {
+          this.viewerObj.viewer = new Viewer(document.getElementById('viewerImg'))
+        }
+        var _this = this
+        loadData('data/apps/seat/config', {fidEnc: '4a18e12602b24c8c'}).then(function (json) {
+          if (json.success && json.data.seatConfig != null) {
+            _this.seatConfig = json.data.seatConfig
+            if (_this.seatConfig.initListPop === 1) {
+              _this.initListPopShow = true
+              _this.$choseLevel(0, null, 0, true)
+            }
+            _this.officeDomain = json.data.officeDomain
+            //处理可预约日期滑动区域数据
+            var reserveBeforeDay = _this.seatConfig.reserveBeforeDay
+            var serverTime = serverNow.getHours() + serverNow.getMinutes() / 60
+            var configTime = parseInt(_this.seatConfig.reserveBeforeTime.split(':')[0]) + parseInt(_this.seatConfig.reserveBeforeTime.split(':')[1]) / 60
+            if (serverTime >= configTime) {
+              reserveBeforeDay = reserveBeforeDay + 1
+            }
+            _this.screenTimes = getTimeByWeek(reserveBeforeDay)//所有周期数组
+            loadData('data/apps/seat/person/role', {fidEnc: deptIdEnc}).then(function (res) {
+              if (json.success) {
+                _this.roleListSelf = res.data.roleListSelf
+                _this.droploader = loadSeatRoomList(_this)
+                $('.mTabul').css('width', _this.screenTimes.length * 1.16 + .88 + 'rem')
+                //时间滑动
+                var myscroll = new iScroll('scr_time', {
+                  scrollX: true,
+                  scrollY: false,
+                  hScrollbar: false,
+                  vScrollbar: false,
+                  vScroll: false
+                })
+              }
+            })
+          } else {
+            popup.alert('获取信息失败')
+          }
+        })
+        loadData('data/apps/seat/curusedshow', {fidEnc: '4a18e12602b24c8c'}).then(function (json) {
+          _this.curusedShow = json.data.curusedShow
+        })
+      }
+    })
+  })
+</script>
+<script type="text/javascript">
+  require(['lever', 'ratio'], function (AlloyLever) {
+    'use strict'
+    AlloyLever.config({cdn: 'https://office-static.chaoxing.com/r/staticreserve/js/lib/lever/vconsole.min.js'})
+  })
+</script>
+</body>
+</html>

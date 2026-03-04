@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+  <meta name="format-detection" content="telephone=no">
+  <title>座位预约</title>
+<base href="https://office.chaoxing.com/">
+<script type="text/javascript">
+  var photoUrl = 'http://photo.chaoxing.com'
+  var panUrl = 'http://pan-yz.chaoxing.com'
+  var noteUrl = 'http://noteyd.chaoxing.com'
+  var staticDomain = 'https://office-static.chaoxing.com/r/'
+  photoUrl = document.location.protocol + photoUrl.split(":")[1]
+  panUrl = document.location.protocol + panUrl.split(":")[1]
+  noteUrl = document.location.protocol + noteUrl.split(":")[1]
+  if (staticDomain !== '') {
+    staticDomain = document.location.protocol + staticDomain.split(":")[1]
+  }
+</script>
+
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/reset.css">
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/seat.css">
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/apps/reserve/iphonex.css">
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/apps/reserve/reserve_mobile.css">
+<script src="https://office-static.chaoxing.com/r/staticreserve/js/lib/jquery/jquery.min.js"></script>
+<script src="https://office-static.chaoxing.com/r/staticreserve/js/lib/wy/YiDunProtector-Web-2.1.4.js"></script>
+<script>document.write("<script src='https://captcha.chaoxing.com/load-d.min.js?t=" + parseInt(Date.now()/60000) + "'><\/script>");</script>
+<script>document.write("<script src='https://captcha.chaoxing.com/light.js?t=" + parseInt(Date.now()/60000) + "'><\/script>");</script>
+<script type="text/javascript" src="//api.map.baidu.com/api?type=webgl&v=1.0&ak=p7HrxjMD6R1hbPFP9sNgkfHjsNZumBai"></script>
+<script>document.write("<script src='https://cstaticdun.126.net/load.min.js?t=" + parseInt(Date.now()/60000) + "'><\/script>");</script>
+<script type="text/javascript" src="https://office-static.chaoxing.com/r/staticreserve/js/lib/requirejs/require.min.js"></script>
+<script type="text/javascript" src="https://office-static.chaoxing.com/r/staticreserve/js/src/front/apps/seat/main.js?t=2026021017"></script>
+<script>requirejs.config({urlArgs: 't=2026021017'})</script>
+  <link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/grid/mgrid.css">
+  <style>
+    .container-div {
+      /*border: 1px solid gray;*/
+      position: relative;
+      font-size: 12px;
+      z-index: 1;
+    }
+    .container-out-div {
+      width: 100%;
+      overflow: auto;
+      -webkit-flex: 1;
+    }
+    .noScrollBar{
+      overflow: hidden;
+    }
+    .seat-div {
+      position: absolute;
+      z-index: 2;
+      text-align: center;
+    }
+    .seat-number {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: -1;
+      font-size: 0.2em;
+    }
+    .seat-inner-div {
+      position: relative;
+      z-index: -1;
+      width: 100%;
+      height: 100%;
+      background: url(https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/seat_canSel.png) no-repeat center / contain;
+    }
+    .seat-blue {
+      background: url(https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/seat_selected.png) no-repeat center / contain;
+    }
+    .seat-brown {
+      background: url(https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/seat_canSel.png) no-repeat center / contain;
+    }
+    .seat-gray {
+      background: url(https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/seat_unSel.png) no-repeat center / contain;
+    }
+    .seat-orange {
+      background: url(https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/seat_supervise.png) no-repeat center / contain;
+    }
+    .seat_font {
+      text-align: center;
+    }
+    .container-div .cmp_icon {
+      position: absolute;
+      width: .19em;
+      height: .19em;
+      top: -.095em;
+      right: -.045em;
+      background: url(https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/edit_cmp.png) no-repeat center;
+      background-size: contain;
+    }
+    .container-div .pwr_icon {
+      position: absolute;
+      width: .19em;
+      height: .19em;
+      top: -.095em;
+      left: -.045em;
+      background: url(https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/edit_pwr.png) no-repeat center;
+      background-size: contain;
+    }
+    .container-div .no_pwr_icon {
+      position: absolute;
+      width: .19em;
+      height: .19em;
+      top: -.095em;
+      left: -.045em;
+      background: url(https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/edit_no_pwr.png) no-repeat center;
+      background-size: contain;
+    }
+    .container-div .win_icon {
+      position: absolute;
+      width: .19em;
+      height: .19em;
+      bottom: -.095em;
+      left: -.045em;
+      background: url(https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/edit_win.png) no-repeat center;
+      background-size: contain;
+    }
+    .u-layer {
+      position: fixed;
+      top: 50%;
+      left: 53%;
+      margin-top: -150px;
+      margin-left: -161px;
+      display: none;
+      z-index: 100000;
+    }
+  </style>
+</head>
+<body>
+<div class="order" v-cloak>
+  <template v-if="!submitsuccess">
+    <div class="order_top">
+      <h6 class="o_title owt2">{{seatRoom.firstLevelName}}
+        <span v-if="seatRoom.secondLevelName">-{{seatRoom.secondLevelName}}</span>
+        <span v-if="seatRoom.thirdLevelName">-{{seatRoom.thirdLevelName}}</span>
+        <span class="pic_sample_btn fr" v-if="gridSampleBtnShow" @click="gridSampleShow=true">图例</span>
+      </h6>
+      <p class="o_time">{{chosedDay}}<label>座位</label></p>
+      <div class="o_use">
+        <span v-if="seatConfig.reserveMode == 0">选择使用时间</span>
+        <span v-else>使用时间</span>
+        <em @click="openTimes" v-if="dynamicChosedTimeInfo.duration == '' ">请选择</em>
+        <em @click="openTimes" v-else>{{dynamicChosedTimeInfo.startTime}} - {{dynamicChosedTimeInfo.endTime}}</em>
+        <div class="o_use_res">
+          <span v-if="!chosedSeatNum">未选择</span>
+          <label v-if="chosedSeatNum">{{chosedSeatNum}}</label>
+        </div>
+      </div>
+    </div>
+    <div v-if="drawSeatMode==0" class="order_cont">
+      <div class="order_sign">
+        <label><span class="blue"></span>已选</label>
+        <label><span class="white"></span>可选</label>
+        <label><span class="gray"></span>不可选</label>
+        <label v-show="seatConfig.freeSupervise==1"><span class="orange"></span>使用中</label>
+        <label v-for="data in seatLabels"><span :class="{pwr_icon:data.id == 1,cmp_icon:data.id == 2,no_pwr_icon:data.id == 3,win_icon:data.id == 4}"></span>{{data.name}}</label>
+      </div>
+      <ul class="order_data">
+        <li class="order_per" :class="[data.cls]" v-for="(data,index) in dynamicSeatNums" @click="choseSeat(data,index)">
+          <span></span>
+          <p class="order_num">{{data.seatNum}}</p>
+          <em :class="{pwr_icon:id == 1,cmp_icon:id == 2,no_pwr_icon:id == 3,win_icon:id == 4}" v-for="id in data.labelIds"></em>
+        </li>
+      </ul>
+    </div>
+    <div v-if="drawSeatMode>0 && !(drawSeatMode==2 && gridStyle==1)" style="padding-top: 0.3rem;">
+      <div class="order_cont" style="overflow: hidden;padding-top: 0.1rem;padding-bottom: 0.1rem;">
+        <div class="order_sign" style="margin-bottom: 0">
+          <label><span class="seat-blue"></span>已选</label>
+          <label><span class="seat-brown"></span>可选</label>
+          <label><span class="seat-gray"></span>不可选</label>
+          <label v-show="seatConfig.freeSupervise==1"><span class="seat-orange"></span>使用中</label>
+          <label v-for="data in seatLabels"><span :class="{pwr_icon:data.id == 1,cmp_icon:data.id == 2,no_pwr_icon:data.id == 3,win_icon:data.id == 4}"></span>{{data.name}}</label>
+        </div>
+        <div v-if="drawSeatMode==2" class="order_sign" style="margin-bottom: 0">
+          <label><span class="gdesk"></span>桌子</label>
+          <label><span class="gdoor"></span>大门</label>
+          <label><span class="gcolumn"></span>柱子</label>
+          <label><span class="gwindow"></span>窗户</label>
+          <label><span class="gshelf"></span>书架</label>
+          <label><span class="gelevator"></span>电梯</label>
+          <label><span class="gtoilet"></span>卫生间</label>
+          <label><span class="gwall"></span>墙壁</label>
+        </div>
+      </div>
+    </div>
+    <div v-if="drawSeatMode==1" id="draw_wrapper_out" class="container-out-div" :class="{noScrollBar: !proportionInitial}">
+      <div class="container-div" id="container_div">
+        <div v-for="(data,index) in drawSeatList" class="seat-div"
+             v-if="!data.labelIds || !data.labelIds.includes(5)"
+             @click="chooseDrawSeat($event,data,index)"
+             :style="{left:(proportion * data.xleft)+'px',top:(proportion * data.ytop)+'px',width:(proportion * data.width)+'px',height:(proportion * data.height)+'px',lineHeight:(proportion * data.height)+'px',fontSize:(proportion * data.width)+'px'}">
+          <div class="seat-inner-div" :class="[{ 'seat-blue': data.reserveStatus==1,'seat-gray': data.reserveStatus>=-2 && data.reserveStatus<0,'seat-orange': data.reserveStatus==-3}]" :style="{transform: 'rotate(' + (data.rotate || 0) + 'deg)'}"></div>
+          <span class="seat-number">{{data.seatNum}}</span>
+          <em :class="{pwr_icon:id == 1,cmp_icon:id == 2,no_pwr_icon:id == 3,win_icon:id == 4}" v-for="id in data.labelIds"></em>
+        </div>
+      </div>
+    </div>
+    <div v-if="drawSeatMode==2" id="wrapper_out" class="container-out-div">
+      <div class="layout_grid" id="content-container" :style="{width:(seatScan * proportion * gridWidth)+'px',height:(seatScan * proportion * gridHeight)+'px'}" v-if="gridStyle==0">
+        <div v-for="(data,index) in seatGridList"
+             v-if="!data.labelIds || !data.labelIds.includes(5)"
+             :class="['grid_cell',{'grid_checked': data.reserveStatus==1,'grid_lock': data.reserveStatus < 0 && data.reserveStatus >= -2,
+             'grid_seat': data.reserveStatus == 0, 'grid_supervise': data.reserveStatus == -3}]" @click="chooseGridSeat($event,data,index)"
+             :style="{transform: 'scale(' + proportion +')',left:(seatScan * proportion *  data.x)+'px',top:(seatScan * proportion *  data.y)+'px'}">
+          {{data.seatNum}}
+          <em :class="{pwr_icon:id == 1,cmp_icon:id == 2,no_pwr_icon:id == 3,win_icon:id == 4}" v-for="id in data.labelIds"></em>
+        </div>
+        <div v-for="(data,index) in otherGridList" :class="['grid_cell',{'grid_desk':data.type == 5,'grid_door':data.type == 6,'grid_column':data.type == 7,
+          'grid_window':data.type == 8,'grid_shelf':data.type == 9,'grid_elevator':data.type == 10,'grid_toilet':data.type == 11, 'grid_wall':data.type == 12}]"
+             :style="{transform: 'scale(' + proportion +')',left:(seatScan * proportion * data.x)+'px',top:(seatScan * proportion * data.y)+'px'}">
+          {{data.label}}<em v-show="!data.label"></em>
+        </div>
+      </div>
+      <div class="layout_grid new_layout_bg" id="content-container":class="{post0: !Number.isInteger(proportion)}" :style="{width:(proportion * (gridWidth+1))+'rem',height:(proportion * (gridHeight+1))+'rem'}" v-else>
+        <div v-for="(data,index) in seatGridList"
+             v-if="!data.labelIds || !data.labelIds.includes(5)"
+             :class="['new_grid_cell','new_grid_seat',{'new_grid_checked': data.reserveStatus==1,'new_grid_lock': data.reserveStatus < 0 && data.reserveStatus >= -2,
+             'new_grid_supervise': data.reserveStatus==-3}]" @click="chooseGridSeat($event,data,index)"
+             :style="{transform: 'scale(' + proportion +')',left:(proportion * (data.x))+'rem',top:(proportion * (data.y))+'rem'}">
+          <em></em>
+          <span>{{data.seatNum}}</span>
+          <i :class="{charge:id == 1,monitor:id == 2,no_charge:id == 3,window:id == 4}" v-for="id in data.labelIds"></i>
+        </div>
+        <div v-for="(data,index) in otherGridList" :class="['new_grid_cell',{'new_grid_desk':data.type == 5,'new_grid_door':data.type == 6,'new_grid_column':data.type == 7,
+          'new_grid_window':data.type == 8,'new_grid_shelf':data.type == 9,'new_grid_elevator':data.type == 10,'new_grid_toilet':data.type == 11,'new_grid_wall':data.type == 12}]"
+             :style="{transform: 'scale(' + proportion +')',left:(proportion * (data.x))+'rem',top:(proportion * (data.y))+'rem'}">
+          {{data.label}}<em v-show="!data.label"></em>
+        </div>
+      </div>
+    </div>
+    <div class="order_bottom">
+      <p class="order_submit noClick" v-if="dynamicChosedTimeInfo.duration == 0 && chosedSeatNum == ''">请选择时间和座位</p>
+      <p class="order_submit noClick" v-else-if="dynamicChosedTimeInfo.duration == 0 && chosedSeatNum != ''">请选择时间</p>
+      <p class="order_submit noClick" v-else-if="dynamicChosedTimeInfo.duration != 0 && chosedSeatNum == ''">请选择座位</p>
+      <p class="order_submit" :class="{noClick: dynamicChosedTimeInfo.duration == 0 || chosedSeatNum == ''}" v-else @click="submit()">提交</p>
+    </div>
+    
+    <div class="screenMask" v-if="timesShow || reserveInfo.show" @click="confirmTime(0)"></div>
+    
+    <div class="look_img" v-if="seatPlanShow(seatRoom)" @click="openSeatPlan(seatRoom)">座位<br/>分布</div>
+    
+    <div class="time_pop" v-if="timesShow">
+      <div class="time_top">
+        <span class="time_cal" @click="confirmTime(0)">取消</span>
+        <em class="time_left" :class="getNoClickClass(1)" @click="subtract()"></em>
+        <span style="color: #536fff;">{{chosedDay}}</span>
+        <em class="time_right" :class="getNoClickClass(2)" @click="add()"></em>
+        <span class="time_sure" @click="confirmTime(1)" v-if="chosedSeatNum == ''">确认</span>
+        <span class="time_sure" @click="confirmTime(2)" v-else>提交</span>
+      </div>
+      <ul class="time_data">
+        <li class="time_cell" :class="[data.cls, {'time_cell_split': isTimeSplit(data, dynamicTimes[index+1])}]" v-for="(data,index) in dynamicTimes" @click="choseTime(data,index)">{{data.time}}</li>
+      </ul>
+      <p class="time_tip" style="line-height:.6rem;padding:0 .3rem;font-size:.24rem;color:#999;text-align:center;">点击选择开始和结束时间</p>
+      <div class="time_btm">
+        <label class="time_area">{{dynamicChosedTimeInfo.startTime}}<span>至</span>{{dynamicChosedTimeInfo.endTime}}</label>
+        <label class="time_tol">共<span>{{dynamicChosedTimeInfo.duration}}</span>小时</label>
+        <span class="seat_num" v-if="chosedSeatNum">座位编号 {{chosedSeatNum}}</span>
+      </div>
+    </div>
+    
+    <div class="safety_pop" style="display:none;"></div>
+    
+    <div class="screenMask" style="z-index: 2" v-if="captchaShow"></div>
+    
+    <div class="number_validator_pop" v-show="captchaShow">
+      <div class="number_validator_top">请完成安全验证 <span class="nvp_close" @click="captchaShow=false"></span></div>
+      <div class="number_validator_cont">
+        
+        <div class="nvc_area"><img style="width: 100%; height: 100%" @click="loadCaptcha" v-show="captchaLoadSuccess" :src="captchaUrl"></div>
+        <div class="nvc_text">
+          <input type="text" class="nvc_input" v-model="captcha" placeholder="请输入上图中的数字"/>
+          <p class="nvc_tip" style="display: none">验证码错误，请重试</p>
+        </div>
+      </div>
+      <div class="number_validator_bottom">
+        <p class="nvb_sure" :class="{noClick: $.trim(captcha).length==0}" @click="captchaSubmit">确定</p>
+      </div>
+    </div>
+    
+    <div id="cxCaptcha"></div>
+  
+    
+    
+    <div class="make_pop" v-show="reserveInfo.show && seatConfig.deptId != 24676">
+      <div class="make_top">
+        <span class="make_close" @click="closeReserveInfo()"></span>
+        <ul class="make_ul">
+          <li class="make_lis">
+            <span class="make_lis_left">预约人</span>
+            <span class="make_lis_right blue">***</span>
+          </li>
+          <li class="make_lis">
+            <span class="make_lis_left">预约时间</span>
+            <span class="make_lis_right">{{reserveInfo.startTime |format('HH:mm')}} - {{reserveInfo.endTime |format('HH:mm')}}</span>
+          </li>
+          <li class="make_lis">
+            <span class="make_lis_left">当前状态</span>
+            <span class="make_lis_right" style="color: #FFAE4E">使用中</span>
+          </li>
+        </ul>
+      </div>
+      <div class="make_btn">
+        <span class="orange" @click="toSupervise()">监督</span>
+      </div>
+    </div>
+    
+    <div class="supervise_pop" v-show="reserveInfo.show && seatConfig.deptId == 24676">
+      <div class="supervise_cont">
+        <ul class="supervise_data">
+          <li class="supervise_item">
+            <span class="supervise_item_left">预约人</span>
+            <span class="supervise_item_right blue">***</span>
+          </li>
+          <li class="supervise_item">
+            <span class="supervise_item_left">预约时间</span>
+            <span class="supervise_item_right gray">{{reserveInfo.startTime |format('HH:mm')}} - {{reserveInfo.endTime |format('HH:mm')}}</span>
+          </li>
+          <li class="supervise_item">
+            <span class="supervise_item_left">当前状态</span>
+            <span class="supervise_item_right yellow">使用中</span>
+          </li>
+        </ul>
+        <p class="supervise_tip">您正在监督该座位，请确认。<br />请勿恶意监督，否则将被计入黑名单一次。</p>
+      </div>
+      <div class="supervise_bottom">
+        <span class="btn_sure" @click="toSupervise()">确认监督</span>
+        <span class="btn_cal" @click="closeReserveInfo()">取消</span>
+      </div>
+    </div>
+  </template>
+  <template v-if="submitsuccess">
+    <div class="success">
+      <div class="suc_top">
+        <h6 class="suc_time">{{seatReserve.startTime |format('HH:mm')}}-{{seatReserve.endTime | format('HH:mm')}}<span>{{seatReserve.duration}}小时</span></h6>
+        <dl class="suc_info">
+          <dt>
+            <p class="suc_addr">
+              {{seatReserve.firstLevelName}}<span v-if="seatReserve.secondLevelName">-{{seatReserve.secondLevelName}}</span><span v-if="seatReserve.thirdLevelName">-{{seatReserve.thirdLevelName}}</span>
+            </p>
+            <p class="suc_day">{{seatReserve.startTime |format('YYYY-MM-DD')}} <span>{{getWeekStr(seatReserve.startTime)}}</span></p>
+          </dt>
+          <dd>
+            <p class="suc_code">座位编号</p>
+            <p class="suc_num">{{seatReserve.seatNum}}</p>
+          </dd>
+        </dl>
+      </div>
+      <div class="suc_cont">
+        <div class="suc_icon"></div>
+        <p class="suc_type_word">预约成功</p>
+        <p class="suc_type_info" v-if="seatConfig.reserveMode === 0">
+          <template v-if="reserveCurrent == 0">
+            请在<span>{{lessSignTime |format('HH:mm')}}</span>至<span>{{lastSignTime |format('HH:mm')}}</span>时间内完成签到，否则将被记录违约
+          </template>
+          <template v-else>
+            请在<span>{{lastSignTime |format('HH:mm')}}</span>前完成签到，否则将被记录违约
+          </template>
+        </p>
+        <p class="suc_type_info" v-else>请在闭馆前完成签到,签到后如需离开可随时扫码退座</p>
+      </div>
+      <div class="suc_btm">
+        <p class="suc_btn" @click="know">我知道了</p>
+      </div>
+    </div>
+  </template>
+  <div class="screenMask" style="z-index: 2" @click="gridSampleShow=false" v-if="gridSampleShow"></div>
+  <div class="img_desc_info" style="z-index: 3" v-if="gridSampleShow">
+    <h2 class="img_desc_title">图例说明</h2>
+    <ul class="img_info_list">
+      <li class="img_item_info" v-for="pic in picSample">
+        <div class="item_pic" :class="pic.class" ><span v-if="pic.class.includes('seat')">001</span></div>
+        <span class="pic_desc">{{pic.name}}</span>
+      </li>
+    </ul>
+  </div>
+  <ul id="viewerImg" style="width:0;height:0;">
+    <li><img id="img" :src="viewerObj.planUrl" width="0" height="0"/></li>
+  </ul>
+  
+  <div class="res_loading" v-if="loadingShow">
+    <div class="res_load_cont">
+      <div class="loading_iocn"></div>
+      <p class="loading_info">努力预约中，请稍稍等待片刻</p>
+    </div>
+  </div>
+  <input type="hidden" id="submit_enc" value="0811f318f69f49a7ab7ea3e3bff8840f_238771432"/>
+</div>
+<script src="https://office-static.chaoxing.com/r/staticreserve/js/lib/alloyfinger/alloy_finger.js"></script>
+<script src="https://office-static.chaoxing.com/r/staticreserve/js/lib/alloyfinger/transform.js"></script>
+<script>
+  var id = '13475', //教室ID
+      day = '2026-03-05', //目标日期
+      deptIdEnc = '4a18e12602b24c8c',
+      seatNum = '', // 座位号
+      serverNow = new Date('2026-03-04T23:10:12.255+08:00'),// 服务器当前日期
+      fidEnc = '4a18e12602b24c8c',
+      uniqueDomainPath = ''
+</script>
+<script src="https://office-static.chaoxing.com/r/staticreserve/js/src/front/apps/seat/submit/third/seat_select_third.js?t=2026021017"></script>
+<script type="text/javascript">
+  require(['lever', 'ratio'], function (AlloyLever) {
+    'use strict'
+    AlloyLever.config({cdn: 'https://office-static.chaoxing.com/r/staticreserve/js/lib/lever/vconsole.min.js'})
+  })
+</script>
+</body>
+</html>

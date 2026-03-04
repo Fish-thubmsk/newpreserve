@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+  <meta name="format-detection" content="telephone=no">
+  <title>规则</title>
+<base href="https://office.chaoxing.com/">
+<script type="text/javascript">
+  var photoUrl = 'http://photo.chaoxing.com'
+  var panUrl = 'http://pan-yz.chaoxing.com'
+  var noteUrl = 'http://noteyd.chaoxing.com'
+  var staticDomain = 'https://office-static.chaoxing.com/r/'
+  photoUrl = document.location.protocol + photoUrl.split(":")[1]
+  panUrl = document.location.protocol + panUrl.split(":")[1]
+  noteUrl = document.location.protocol + noteUrl.split(":")[1]
+  if (staticDomain !== '') {
+    staticDomain = document.location.protocol + staticDomain.split(":")[1]
+  }
+</script>
+
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/reset.css">
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/seat.css">
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/apps/reserve/iphonex.css">
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/apps/reserve/reserve_mobile.css">
+<script src="https://office-static.chaoxing.com/r/staticreserve/js/lib/jquery/jquery.min.js"></script>
+<script src="https://office-static.chaoxing.com/r/staticreserve/js/lib/wy/YiDunProtector-Web-2.1.4.js"></script>
+<script>document.write("<script src='https://captcha.chaoxing.com/load-d.min.js?t=" + parseInt(Date.now()/60000) + "'><\/script>");</script>
+<script>document.write("<script src='https://captcha.chaoxing.com/light.js?t=" + parseInt(Date.now()/60000) + "'><\/script>");</script>
+<script type="text/javascript" src="//api.map.baidu.com/api?type=webgl&v=1.0&ak=p7HrxjMD6R1hbPFP9sNgkfHjsNZumBai"></script>
+<script>document.write("<script src='https://cstaticdun.126.net/load.min.js?t=" + parseInt(Date.now()/60000) + "'><\/script>");</script>
+<script type="text/javascript" src="https://office-static.chaoxing.com/r/staticreserve/js/lib/requirejs/require.min.js"></script>
+<script type="text/javascript" src="https://office-static.chaoxing.com/r/staticreserve/js/src/front/apps/seat/main.js?t=2026021017"></script>
+<script>requirejs.config({urlArgs: 't=2026021017'})</script>
+  <style>
+      .zcxy_title {
+          margin-bottom: 5px;
+          color: #333333;
+      }
+      .zcxy_content {
+          margin-bottom: 2px;
+      }
+  </style>
+</head>
+<body>
+<div class="rule" v-cloak>
+  <div class="flow">
+    <h6 class="flow_title">使用流程</h6>
+    <div class="flow_tab">座位预约<span></span>{{seatConfig.isPosition == 5 ? '蓝牙签到' : dljt ? '门禁处签到' : '扫码签到'}}<span></span>使用完毕退座</div>
+    <div class="flow_cont">
+      <div v-for="(step, index) in buildRserveflowSteps()"
+           :key="step.type"
+           class="flow_per"
+           :class="{noLeft: step.type === 'push-bind' || (step.type === 'release' && zcxy)}">
+        <h6 class="flow_per_title">
+          <span>{{ index + 1 }}</span>{{ step.title }}
+        </h6>
+        
+        <template v-if="step.type === 'reserve'">
+          <p class="flow_per_info"><span>A</span>预约选座：首页“预约选座”按钮，选择需要预约的时间、区域、座位进行预约，适用于有明确目标座位的预约情形。</p>
+          <p class="flow_per_info"><span>B</span>快速选座：首页“快速选座”按钮，设置筛选条件，系统会自动分配符合条件的座位给您，适用于“随遇而安”型的预约。</p>
+          <p class="flow_per_info" v-if="zcxy"><span>C</span>现场扫码选座：扫描桌子上的二维码，选择空闲时间进行预约。</p>
+        </template>
+        <template v-else-if="step.type === 'sign-in'">
+          <p class="flow_per_info" v-html="getSignInRuleText()"></p>
+        </template>
+        <template v-else-if="step.type === 'leave'">
+          <p class="flow_per_info">
+            <span style="display:none;">A</span>
+            <template v-if="!dljt">
+              如您使用过程中需要暂时离开座位，请点击首页当前预约卡片中的暂离按钮。
+              <template v-if="seatConfig.leaveDuration != -1">
+                暂离时长为<label>{{seatConfig.leaveDuration}}分钟</label>，
+              </template>
+              您需要在规定时间内返回，并{{seatConfig.isPosition == 5 ? '蓝牙签到落座' : '扫码落座'}}。在此期间内，您的座位将会受到保护。
+            </template>
+            <template v-else>
+              如您使用过程中需要暂时离开图书馆，请点击首页当前预约卡片中的暂离按钮。暂离时长为<label>{{seatConfig.leaveDuration}}分钟</label>，您需要在规定时间内从图书馆入口处刷脸或刷卡返回。在此期间内，您的座位将会受到保护。
+            </template>
+          </p>
+        </template>
+        <template v-else-if="step.type === 'release'">
+          <p class="flow_per_info" v-if="allAutoSignOut">
+            <span style="display:none;">A</span>
+            使用完毕后，系统默认座位将会自动退座；若提前较长时间离开，请点击退座按钮，确保座位的有效使用。退座后该座位将被释放，同时记录您成功履约一次。
+          </p>
+          <p class="flow_per_info" v-else>
+            <span style="display:none;">A</span>
+            使用完毕后，在首页当前预约卡片，点击退座按钮。退座后该座位将被释放，同时记录您成功履约一次。如使用完毕后没有退座，将被记录为违约行为。
+          </p>
+        </template>
+        <template v-else-if="step.type === 'push-bind'">
+          <p class="flow_per_info">
+            <span style="display:none;">A</span>
+            为确保能够及时接收到座位预约的相关信息，请各位读者在首次使用时本系统时同步绑定座位预约信息推送服务。绑定完成后，本系统将通过至诚学院图书馆官方公众号，自动向您推送关于座位预约的各类通知，包括但不限于预约信息、签到提醒、监督提示等。
+          </p>
+        </template>
+      </div>
+      <div class="flow_tips" v-show="!xajz">
+        <h6 class="flow_tips_title">座位预约小贴士</h6>
+        <ul class="flow_tips_ul">
+          <li class="flow_tips_lis">
+            <span>使用要预约 </span>
+            <span>预约要签到</span>
+          </li>
+          <li class="flow_tips_lis">
+            <span v-if="!hideLeaveRule">离座要暂离</span>
+            <span>用完要退座</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <p class="gray_line"></p>
+  <div class="make">
+    <div class="make_title">预约规则</div>
+    <ul class="make_ul">
+      <li class="make_lis"
+          v-for="(rule, index) in buildCommonRules()"
+          :key="rule.type + index"
+          :style="{ marginBottom: (index === buildCommonRules().length - 1 && rule.type !== 'meal-leave') ? '0' : '' }">
+        
+        <span>{{ index + 1 }}</span>
+        
+        <div class="make_name">
+          <template v-if="rule.type === 'reserve-start'">预约开始时间为</template>
+          <template v-else-if="rule.type === 'reserve-duration'">
+            {{ rule.reserveDuration > 0 ? '单次预约时长为' : '不限制单次预约时长' }}
+          </template>
+          <template v-else-if="rule.type === 'sign-duration'">座位预留时长为</template>
+          <template v-else-if="rule.type === 'cancel-day'">每日取消次数</template>
+          <template v-else-if="rule.type === 'cancel-week'">每周取消次数为</template>
+          <template v-else-if="rule.type === 'leave-duration'">暂离时长为</template>
+          <template v-else-if="rule.type === 'supervise-duration'">监督时长为</template>
+          <template v-else-if="rule.type === 'meal-time'">用餐时段为</template>
+          <template v-else-if="rule.type === 'meal-leave'">用餐时段内</template>
+        </div>
+        
+        <p v-if="rule.type === 'reserve-start'">
+          <label v-if="rule.reserveBeforeDay !== 0">提前{{ rule.reserveBeforeDay }}天的 {{ rule.reserveBeforeTime }}</label>
+          <label v-else>当天的 {{ rule.reserveBeforeTime }}</label>
+        </p>
+        <p v-else-if="rule.type === 'reserve-duration' && rule.reserveDuration > 0">
+          <label>{{ rule.reserveDuration }}小时</label>
+        </p>
+        <p v-else-if="rule.type === 'sign-duration'">
+          <label>{{ rule.signDuration }}分钟</label>
+        </p>
+        <p v-else-if="rule.type === 'cancel-day'">
+          <label>{{ rule.maxCancelPerDay == 0 ? '不限' : rule.maxCancelPerDay + '次' }}</label>
+        </p>
+        <p v-else-if="rule.type === 'cancel-week'">
+          <label>{{ rule.maxCancelPerWeek == 0 ? '不限' : rule.maxCancelPerWeek + '次' }}</label>
+        </p>
+        <p v-else-if="rule.type === 'leave-duration'">
+          <label>{{ rule.leaveDuration }}分钟</label>
+        </p>
+        <p v-else-if="rule.type === 'supervise-duration'">
+          <label>{{ rule.superviseDuration }}分钟</label>
+        </p>
+        <p v-else-if="rule.type === 'meal-time'">
+          <label>{{ rule.lunchStartTime }}</label>至<label>{{ rule.lunchEndTime }}</label>
+          <label>{{ rule.dinnerStartTime }}</label>至<label>{{ rule.dinnerEndTime }}</label>
+        </p>
+        <p v-else-if="rule.type === 'meal-leave'">
+          可暂离<label>{{ rule.mealLeaveDuration }}分钟</label>
+        </p>
+      </li>
+    </ul>
+  </div>
+  
+  <p class="gray_line"></p>
+  <div class="make" v-if="seatSpecialRules.length>0">
+    <div class="make_title" @click="specialRuleShow = !specialRuleShow">特殊预约规则
+      <span class="switch-arrow">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="38" viewBox="0 0 32 38" fill="none" v-if="specialRuleShow">
+            <path d="M25.3333 14.2222L16 23.7037L6.66667 14.2222" stroke="#1C274C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="38" viewBox="0 0 32 38" fill="none" v-else>
+            <path d="M6.66665 23.7036L16 14.2221L25.3333 23.7036" stroke="#1C274C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+    </div>
+    <template v-if="specialRuleShow">
+      <ul class="make_ul" v-for="(rule, ruleIndex) in seatSpecialRules" :key="ruleIndex">
+        <li class="make_lis"
+            v-for="(step, stepIndex) in buildSpecialRuleSteps(rule)"
+            :key="stepIndex"
+            :style="{ marginBottom: (stepIndex === buildSpecialRuleSteps(rule).length - 1) ? '0' : '' }">
+          
+          <span>{{ stepIndex + 1 }}</span>
+          
+          <div v-if="step.type === 'area'" class="make_name">特殊区域为</div>
+          <div v-else-if="step.type === 'reserve'" class="make_name">
+            {{ step.value > 0 ? '单次预约时长为' : '不限制单次预约时长' }}
+          </div>
+          <div v-else-if="step.type === 'sign'" class="make_name">座位预留时长为</div>
+          <div v-else-if="step.type === 'leave'" class="make_name">暂离时长为</div>
+          <div v-else-if="step.type === 'supervise'" class="make_name">监督时长为</div>
+          <div v-else-if="step.type === 'meal-time'" class="make_name">用餐时段为</div>
+          <div v-else-if="step.type === 'meal-leave'" class="make_name">用餐时段内</div>
+          
+          <p v-if="step.type === 'area'">
+            <template v-for="(room, idx) in step.content">
+              <label v-if="idx !== 0">、</label>
+              <label>{{ room.firstLevelName }}</label>
+              <label v-if="room.secondLevelName">-{{ room.secondLevelName }}</label>
+              <label v-if="room.thirdLevelName">-{{ room.thirdLevelName }}</label>
+            </template>
+          </p>
+          <p v-else-if="step.type === 'reserve' && step.value > 0">
+            <label>{{ step.value }}小时</label>
+          </p>
+          <p v-else-if="step.type === 'sign'">
+            <label>{{ step.value }}分钟</label>
+          </p>
+          <p v-else-if="step.type === 'leave'">
+            <label>{{ step.value }}分钟</label>
+          </p>
+          <p v-else-if="step.type === 'supervise'">
+            <label>{{ step.value }}分钟</label>
+          </p>
+          <p v-else-if="step.type === 'meal-time'">
+            <label>{{ step.lunchStart }}</label>至<label>{{ step.lunchEnd }}</label>
+            <label>{{ step.dinnerStart }}</label>至<label>{{ step.dinnerEnd }}</label>
+          </p>
+          <p v-else-if="step.type === 'meal-leave'">
+            可暂离<label>{{ step.value }}分钟</label>
+          </p>
+        </li>
+      </ul>
+    </template>
+  </div>
+  <p class="gray_line" v-if="!hideSuperviseRule"></p>
+  <div class="make" v-if="!hideSuperviseRule">
+    <div class="make_title">监督规则</div>
+    <ul class="make_ul">
+      <li class="make_lis"
+          v-for="(rule, index) in buildSuperviseRules()"
+          :key="rule.type">
+        
+        <span>{{ index + 1 }}</span>
+        
+        <template v-if="rule.type === 'rule1'">
+          如您发现某个显示在使用中的座位实际无人就坐，
+          {{ rule.isPosition == 5 ? '可在预约界面发起监督' : '可扫描座位二维码发起监督' }}
+        </template>
+        <template v-else-if="rule.type === 'rule2'">
+          <div>
+            被监督人需要在<label>{{ rule.superviseDuration }}分钟</label>内重新
+            {{ rule.isPosition == 5 ? '蓝牙签到落座' : '扫码落座' }}或退座
+          </div>
+        </template>
+        <template v-else-if="rule.type === 'rule3'">
+          被监督人在监督时间内重新
+          {{ rule.isPosition == 5 ? '蓝牙签到落座' : '扫码落座' }}，可继续使用座位
+        </template>
+        <template v-else-if="rule.type === 'rule4'">
+          被监督人在监督时间内退座，记为正常履约，并且座位释放
+        </template>
+        <template v-else-if="rule.type === 'rule5'">
+          被监督人在监督时间内未重新
+          {{ rule.isPosition == 5 ? '蓝牙签到落座' : '扫码落座' }}或退座，记为一次违约，并且座位释放
+        </template>
+      </li>
+    </ul>
+  </div>
+  <p class="gray_line"></p>
+  <div class="violate" v-show="!xajz">
+    <h6 class="violate_title">违规规则</h6>
+    <ul class="violate_ul">
+      <li class="violate_lis"
+          v-for="(rule, index) in buildViolationRules()"
+          :key="rule.type">
+        
+        <span>{{ index + 1 }}</span>
+        
+        <template v-if="rule.type === 'rule1'">
+          预约后没有在规定时间内签到，将被记录为违约
+        </template>
+        <template v-else-if="rule.type === 'rule2'">
+          离开不退座记录为违约
+        </template>
+        <template v-else-if="rule.type === 'rule3'">
+          <template v-if="!rule.dljt">
+            暂离时未在<label>{{ rule.leaveDuration }}分钟</label>内返回
+            {{ rule.isPosition == 5 ? '蓝牙签到落座' : '扫码落座' }}，将被记录为违约
+          </template>
+          <template v-else>
+            暂离时未在<label>{{ rule.leaveDuration }}分钟</label>内返回落座，将被记录为违约
+          </template>
+        </template>
+        <template v-else-if="rule.type === 'rule4'">
+          被监督后未在<label>{{ rule.superviseDuration }}分钟</label>内返回或退座，将被记录为违约
+        </template>
+        <template v-else-if="rule.type === 'rule5-week'">
+          每周违约次数达到<label>{{ rule.violateTimes }}次</label>，将暂停本周的预约功能
+        </template>
+        <template v-else-if="rule.type === 'rule5-unlimited'">
+          不限制违约次数
+        </template>
+        <template v-else-if="rule.type === 'rule5-cycle'">
+          每<label>{{ rule.violationLimitDay }}</label>天违约次数达到
+          <label>{{ rule.violateTimes }}次</label>，将暂停<label>{{ rule.violationLimitDuration }}</label>天的预约功能
+        </template>
+      </li>
+    </ul>
+  </div>
+  <p class="gray_line"></p>
+  <div class="three" v-show="!xajz">
+    <h6 class="three_title">约法三章</h6>
+    <ul class="three_ul">
+      <li class="three_lis"><span>1</span>使用座位前请先进行预约，在预约时段内，预约人拥有该座位的使用权。请没有预约的{{seatConfig.deptId==70 ? '读者' :
+        '同学'}}将座位让给已经预约的{{seatConfig.deptId==70 ? '读者' : '同学'}}。杜绝“霸座”现象从我做起
+      </li>
+      <li class="three_lis"><span>2</span>禁止使用任何非正常手段进行签到等操作，否则暂停预约功能</li>
+      <li class="three_lis"><span>3</span>您的所有履约情况将被记录，请履约守信，点滴积累自己的信用记录</li>
+    </ul>
+  </div>
+  <template v-if="zcxy">
+    <p class="gray_line"></p>
+    <div class="three">
+      <h6 class="three_title">图书馆各功能区及座位数</h6>
+      <ul class="three_ul">
+        <li class="three_lis">
+          <p class="zcxy_title"><span>1</span>至诚图—南楼二楼</p>
+          <p class="zcxy_content">大厅公共自修区：109</p>
+          <p class="zcxy_content">图书借阅室（南书库一）：72</p>
+        </li>
+        <li class="three_lis"><span>2</span>
+          <p class="zcxy_title">至诚图—南楼三楼</p>
+          <p class="zcxy_content">图书借阅室（南书库二）：84</p>
+        </li>
+        <li class="three_lis"><span>3</span>
+          <p class="zcxy_title">至诚图—北楼二楼</p>
+          <p class="zcxy_content">公共自修室：168</p>
+          <p class="zcxy_content">多功能研修室（考研自习室）：70</p>
+          <p class="zcxy_content">期刊阅览室（一区）：24</p>
+          <p class="zcxy_content">期刊阅览室（二区）：60</p>
+        </li>
+      </ul>
+    </div>
+    <p class="gray_line"></p>
+    <div class="three">
+      <h6 class="three_title">特殊区域及其规则</h6>
+      <p class="zcxy_content">1、特殊区域：考研季（9-12月）特殊区域为多功能研修室（考研自习室）、期刊阅览室（二区）。每年考研季（9—12月）图书馆将设置特殊区域助力考研。</p>
+      <p style="margin-top: 10px;">2、规则：</p>
+      <p class="zcxy_content">（1）特殊区域仅向特定群体的读者（毕业生）开放预约，其他读者不可预约。</p>
+      <p class="zcxy_content">（2）最长预约时间为一个整天（14小时）。</p>
+      <p class="zcxy_content">（3）其他规则不变。</p>
+      <p class="zcxy_content">（4）非考研季，按普通规则执行。</p>
+    </div>
+  </template>
+  <div class="rule_back" @click="know"><p class="rule_back_btn">返回</p></div>
+</div>
+<script>
+  require(['jquery', 'Vue', 'moment', 'seatBaseUtils'], function ($, Vue, moment, seatBaseUtils) {
+    'use strict'
+    var deptIdEnc = '4a18e12602b24c8c'
+    function operateData(url, data) {
+      return $.getJSON(url, data)
+    }
+    //动态构造弹性签到文案
+    function getSignDurationText(_this) {
+      var textArr = []
+      if (_this.seatConfig.preSignDuration > 0) {
+        textArr.push('前<label>' + _this.seatConfig.preSignDuration + '分钟</label>')
+      }
+      if (_this.seatConfig.signDuration > 0) {
+        textArr.push('后<label>' + _this.seatConfig.signDuration + '分钟</label>')
+      }
+      if (_this.seatConfig.signDuration < 0) {
+        if (textArr.length <= 0) {
+          return '签到时间为预约时间段内任意时间签到。'
+        }
+        textArr.push('签到时间为预约时间段内任意时间签到')
+      }
+      return '签到时间为预约开始时间的' + textArr.join('和') + '。'
+    }
+    //判断所有规则是否都是自动退座模式
+    function isAllAutoSignOut(_this) {
+      if (_this.seatConfig.signBackModel !== 1) {
+        return
+      }
+      for (var i = 0; i < _this.seatSpecialRules.length; i++) {
+        if (_this.seatSpecialRules[i].signBackModel !== 1) {
+          return
+        }
+      }
+      for (var i = 0; i < _this.seatRoleSpecialRules.length; i++) {
+        if (_this.seatRoleSpecialRules[i].signBackModel !== 1) {
+          return
+        }
+      }
+      _this.allAutoSignOut = true
+    }
+    
+    new Vue({
+      el: '.rule',
+      data: function () {
+        return {
+          seatConfig: '',//基础配置
+          specialRuleShow: false,
+          seatSpecialRules: [],
+          seatRoleSpecialRules: [],
+          zcxy: false, //至诚学院定制标识
+          dljt: false, //大连交通大学定制标识
+          xajz: false, //西安建筑科技大学
+          allAutoSignOut: false,
+          hideLeaveRule: false,
+          hideSuperviseRule: false
+        }
+      },
+      methods: {
+        know: function () {
+          location.href = location.origin + '' + '/front/third/apps/seat/index?fidEnc=' + deptIdEnc
+        },
+        //动态构造签到规则文案
+        getSignInRuleText: function () {
+          if (!this.seatConfig) {
+            return ''
+          }
+          var _this = this
+          var seatConfig = _this.seatConfig
+          var durationText = getSignDurationText(_this)
+          if (seatConfig.isPosition == 0 || seatConfig.isPosition == 3 || seatConfig.isPosition == 4) {
+            return '扫描桌子上的二维码进行签到，' + durationText + '如果没有按时签到，将被记录为违约行为。'
+          }
+          if (seatConfig.isPosition == 1) {
+            if (!_this.dljt) {
+              return '扫描桌子上的二维码并且在签到范围可以进行签到，' + durationText + '如果没有按时签到，将被记录为违约行为。'
+            }
+            return '入馆时刷脸或刷卡自动签到，请关注座位状态，'
+          }
+          if (seatConfig.isPosition == 2) {
+            return '扫描座位二维码或者预约首页点击签到判断在签到范围可以进行签到，' + durationText + '未按时签到将被记录为违约行为。'
+          }
+          if (seatConfig.isPosition == 5) {
+            return '预约首页点击签到检测附近蓝牙基站进行签到，' + durationText + '未按时签到将被记录为违约行为。'
+          }
+          if (seatConfig.isPosition == 6) {
+            return '学习通扫描桌子上的二维码并且检测附近蓝牙基站进行签到，' + durationText + '如果没有按时签到，将被记录为违约行为。'
+          }
+        },
+        buildSpecialRuleSteps: function (rule) {
+          var steps = []
+          steps.push({
+            type: 'area',
+            content: rule.seatRoom
+          })
+          steps.push({
+            type: 'reserve',
+            value: rule.reserveDuration
+          })
+          steps.push({
+            type: 'sign',
+            value: rule.signDuration
+          })
+          if (rule.leaveDuration !== -1) {
+            steps.push({
+              type: 'leave',
+              value: rule.leaveDuration
+            })
+          }
+          if (rule.superviseNum !== 0) {
+            steps.push({
+              type: 'supervise',
+              value: rule.superviseDuration || 10
+            })
+          }
+          if (rule.hasMeal === 1) {
+            steps.push({
+              type: 'meal-time',
+              lunchStart: rule.lunchStartTime,
+              lunchEnd: rule.lunchEndTime,
+              dinnerStart: rule.dinnerStartTime,
+              dinnerEnd: rule.dinnerEndTime
+            })
+            steps.push({
+              type: 'meal-leave',
+              value: rule.mealLeaveDuration
+            })
+          }
+          return steps
+        },
+        buildRserveflowSteps: function () {
+          var steps = []
+          steps.push({
+            title: '预约座位',
+            type: 'reserve',
+            visible: true
+          })
+          steps.push({
+            title: '签到',
+            type: 'sign-in',
+            visible: true
+          })
+          if (!this.xajz && !this.hideLeaveRule) {
+            steps.push({
+              title: '暂离',
+              type: 'leave',
+              visible: true
+            })
+          }
+          if (!this.xajz) {
+            steps.push({
+              title: '退座',
+              type: 'release',
+              visible: true
+            })
+          }
+          if (this.zcxy) {
+            steps.push({
+              title: '推送信息绑定',
+              type: 'push-bind',
+              visible: true
+            })
+          }
+          return steps
+        },
+        buildCommonRules: function () {
+          var rules = []
+          var seatConfig = this.seatConfig
+          var xajz = this.xajz
+          rules.push({
+            type: 'reserve-start',
+            reserveBeforeDay: seatConfig.reserveBeforeDay,
+            reserveBeforeTime: seatConfig.reserveBeforeTime
+          })
+          rules.push({
+            type: 'reserve-duration',
+            reserveDuration: seatConfig.reserveDuration
+          })
+          rules.push({
+            type: 'sign-duration',
+            signDuration: seatConfig.signDuration
+          })
+          rules.push({
+            type: 'cancel-day',
+            maxCancelPerDay: seatConfig.maxCancelPerDay
+          })
+          rules.push({
+            type: 'cancel-week',
+            maxCancelPerWeek: seatConfig.maxCancelPerWeek
+          })
+          if (!xajz && seatConfig.leaveDuration !== -1) {
+            rules.push({
+              type: 'leave-duration',
+              leaveDuration: seatConfig.leaveDuration
+            })
+          }
+          if (seatConfig.superviseNum !== 0) {
+            rules.push({
+              type: 'supervise-duration',
+              superviseDuration: seatConfig.superviseDuration || 10
+            })
+          }
+          if (seatConfig.hasMeal === 1) {
+            rules.push({
+              type: 'meal-time',
+              lunchStartTime: seatConfig.lunchStartTime,
+              lunchEndTime: seatConfig.lunchEndTime,
+              dinnerStartTime: seatConfig.dinnerStartTime,
+              dinnerEndTime: seatConfig.dinnerEndTime
+            })
+            rules.push({
+              type: 'meal-leave',
+              mealLeaveDuration: seatConfig.mealLeaveDuration
+            })
+          }
+          return rules
+        },
+        buildSuperviseRules: function () {
+          var rules = []
+          var seatConfig = this.seatConfig
+          rules.push({
+            type: 'rule1',
+            isPosition: seatConfig.isPosition
+          })
+          if (seatConfig.superviseNum !== 0) {
+            rules.push({
+              type: 'rule2',
+              superviseDuration: seatConfig.superviseDuration || 10,
+              isPosition: seatConfig.isPosition
+            })
+          }
+          rules.push({
+            type: 'rule3',
+            isPosition: seatConfig.isPosition
+          })
+          rules.push({
+            type: 'rule4'
+          })
+          rules.push({
+            type: 'rule5',
+            isPosition: seatConfig.isPosition
+          })
+          return rules
+        },
+        buildViolationRules: function () {
+          var rules = []
+          var seatConfig = this.seatConfig
+          var dljt = this.dljt
+          rules.push({
+            type: 'rule1'
+          })
+          rules.push({
+            type: 'rule2'
+          })
+          if (seatConfig.leaveDuration !== -1) {
+            rules.push({
+              type: 'rule3',
+              leaveDuration: seatConfig.leaveDuration,
+              isPosition: seatConfig.isPosition,
+              dljt: dljt
+            })
+          }
+          if (seatConfig.superviseNum !== 0) {
+            rules.push({
+              type: 'rule4',
+              superviseDuration: seatConfig.superviseDuration || 10
+            })
+          }
+          if (seatConfig.violationType === 0 && seatConfig.violateTimes > 0) {
+            rules.push({
+              type: 'rule5-week',
+              violateTimes: seatConfig.violateTimes
+            })
+          } else if (seatConfig.violateTimes === 0) {
+            rules.push({
+              type: 'rule5-unlimited'
+            })
+          } else if (seatConfig.violationType === 1 && seatConfig.violateTimes > 0) {
+            rules.push({
+              type: 'rule5-cycle',
+              violationLimitDay: seatConfig.violationLimitDay,
+              violateTimes: seatConfig.violateTimes,
+              violationLimitDuration: seatConfig.violationLimitDuration
+            })
+          }
+          return rules
+        }
+      },
+      filters: {
+        format: function (value, formater) {
+          return moment(value).format(formater)
+        }
+      },
+      mounted: function () {
+        var _this = this
+        operateData('data/apps/seat/special/rule/info', {deptIdEnc: deptIdEnc}).then(function (json) {
+          if (json.success) {
+            _this.seatConfig = json.data.seatConfig
+            _this.seatSpecialRules = json.data.seatSpecialRules
+            _this.seatRoleSpecialRules = json.data.seatRoleSpecialRules
+            seatBaseUtils.updateHideRules(_this.seatConfig, _this.seatSpecialRules, _this.seatRoleSpecialRules, _this)
+            _this.dljt = _this.seatConfig.deptId === 124994
+            _this.zcxy = _this.seatConfig.deptId === 46088
+            _this.xajz = _this.seatConfig.deptId === 220320
+            isAllAutoSignOut(_this)
+          }
+        })
+      }
+    })
+  })
+</script>
+<script type="text/javascript">
+  require(['lever', 'ratio'], function (AlloyLever) {
+    'use strict'
+    AlloyLever.config({cdn: 'https://office-static.chaoxing.com/r/staticreserve/js/lib/lever/vconsole.min.js'})
+  })
+</script>
+</body>
+</html>

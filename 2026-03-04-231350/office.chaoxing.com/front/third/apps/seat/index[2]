@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+  <meta name="format-detection" content="telephone=no">
+  <title>座位预约</title>
+<base href="https://office.chaoxing.com/">
+<script type="text/javascript">
+  var photoUrl = 'http://photo.chaoxing.com'
+  var panUrl = 'http://pan-yz.chaoxing.com'
+  var noteUrl = 'http://noteyd.chaoxing.com'
+  var staticDomain = 'https://office-static.chaoxing.com/r/'
+  photoUrl = document.location.protocol + photoUrl.split(":")[1]
+  panUrl = document.location.protocol + panUrl.split(":")[1]
+  noteUrl = document.location.protocol + noteUrl.split(":")[1]
+  if (staticDomain !== '') {
+    staticDomain = document.location.protocol + staticDomain.split(":")[1]
+  }
+</script>
+
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/reset.css">
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/seat.css">
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/apps/reserve/iphonex.css">
+<link rel="stylesheet" href="https://office-static.chaoxing.com/r/staticreserve/style/apps/reserve/reserve_mobile.css">
+<script src="https://office-static.chaoxing.com/r/staticreserve/js/lib/jquery/jquery.min.js"></script>
+<script src="https://office-static.chaoxing.com/r/staticreserve/js/lib/wy/YiDunProtector-Web-2.1.4.js"></script>
+<script>document.write("<script src='https://captcha.chaoxing.com/load-d.min.js?t=" + parseInt(Date.now()/60000) + "'><\/script>");</script>
+<script>document.write("<script src='https://captcha.chaoxing.com/light.js?t=" + parseInt(Date.now()/60000) + "'><\/script>");</script>
+<script type="text/javascript" src="//api.map.baidu.com/api?type=webgl&v=1.0&ak=p7HrxjMD6R1hbPFP9sNgkfHjsNZumBai"></script>
+<script>document.write("<script src='https://cstaticdun.126.net/load.min.js?t=" + parseInt(Date.now()/60000) + "'><\/script>");</script>
+<script type="text/javascript" src="https://office-static.chaoxing.com/r/staticreserve/js/lib/requirejs/require.min.js"></script>
+<script type="text/javascript" src="https://office-static.chaoxing.com/r/staticreserve/js/src/front/apps/seat/main.js?t=2026021017"></script>
+<script>requirejs.config({urlArgs: 't=2026021017'})</script>
+</head>
+<body>
+<div class="seat_index" v-cloak>
+  <div class="page_header">
+    <div class="user_login">
+      <div class="user_login_info" v-if="seatConfig.thirdpartLoginoutShow!=2">
+        <div class="user_login_avatar"><img :src="photoDomain + '/p/'+userInfo.uid+'_50'" alt=""/></div>
+        <span class="user_login_name">{{userInfo.uname}}</span>
+      </div>
+      <div class="user_login_info" v-else>
+        <span class="user_login_name">{{userInfo.uname}}</span>
+        <span class="user_login_name" style="margin-left: 10px; max-width: 5rem;"> {{userInfo.sno}}</span>
+      </div>
+      <div class="user_login_operate" v-if="seatConfig.thirdpartLoginoutShow!=2">
+        <div class="user_login_btn" v-if="roleChangeBtnShow" @click="goManagePage">切换身份</div>
+        <div class="user_login_btn" v-if="!hideLoginOut && seatConfig.thirdpartLoginoutShow!=0" @click="logOutShow=true">退出登录</div>
+      </div>
+    </div>
+  </div>
+  <ul class="sind_top">
+    <li class="sind_top_btn" @click="toSeatListPage" v-if="reservationEntrance.defaultReserve">
+      <img src="https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/ind_yuyue.png" alt="" class="sind_top_icon"/>
+      <p class="sind_top_word">预约选座</p>
+    </li>
+    <li class="sind_top_btn" @click="sceneChoseSeat" v-if="reservationEntrance.liveReserve">
+      <img src="https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/ind_xinachang.png" alt="" class="sind_top_icon"/>
+      <p class="sind_top_word">快速选座</p>
+    </li>
+    <li class="sind_top_btn" @click="toReserveListPage">
+      <img src="https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/ind_jilu.png" alt="" class="sind_top_icon"/>
+      <p class="sind_top_word">预约记录</p>
+    </li>
+    <li class="sind_top_btn" @click="goNotice()" v-if="customNoticeShow">
+      <img v-if="seatConfig.deptId != 23278" src="https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/ind_xitong.png" alt="" class="sind_top_icon"/>
+      
+      <img v-else src="https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/icon_data.png" alt="" class="sind_top_icon"/>
+      <p class="sind_top_word">{{seatConfig.noticeName}}</p>
+    </li>
+    <li class="sind_top_btn" @click="toRulePage" v-if="defaultNoticeShow">
+      <img src="https://office-static.chaoxing.com/r/staticreserve/style/apps/seat/images/ind_guize.png" alt="" class="sind_top_icon"/>
+      <p class="sind_top_word">规则说明</p>
+    </li>
+  </ul>
+  <div class="sind_cont">
+    
+    <div class="s_now_nodata" v-if="notCurReserves">
+      <h6 class="s_now_title">当前预约</h6>
+      <div class="s_now_cont"><span>暂无预约</span></div>
+    </div>
+    
+    <div class="s_now" :class="{wait: curReserve.status == 0,leave:curReserve.status == 3,leave:curReserve.status == 5}" v-if="!notCurReserves" v-for="curReserve in curReserves">
+      <h6 class="s_now_title">
+        <span>当前预约</span>
+        <span class="s_now_btn" @click.stop="toggleReserveInfo(curReserve)">出示预约信息</span>
+        <span class="s_now_type" v-if="curReserve.status === 0">待履约</span>
+        <span class="s_now_type" v-if="curReserve.status === 1">使用中</span>
+        <span class="s_now_type" v-if="curReserve.status === 3">暂离中</span>
+        <span class="s_now_type" v-if="curReserve.status === 5">被监督中</span>
+      </h6>
+      <dl class="s_now_cont">
+        <dt>
+          <h6 class="s_now_name owt1">{{curReserve.seatNum}}号座位</h6>
+          <p class="s_now_addr owt1">
+            {{curReserve.firstLevelName}}<span v-if="curReserve.secondLevelName">-{{curReserve.secondLevelName}}</span><span v-if="curReserve.thirdLevelName">-{{curReserve.thirdLevelName}}</span>
+          </p>
+          <p class="s_now_time owt1" v-if="curReserve.status === 1 || curReserve.status === 3 || curReserve.status === 5">剩余时长&nbsp;&nbsp;&nbsp;{{countDown}}</p>
+          <p class="s_now_time owt1" v-else>{{curReserve.startTime |
+            format('YYYY-MM-DD')}}<span>{{curReserve.startTime | format('HH:mm')}}-{{curReserve.endTime | format('HH:mm')}}</span><span>{{curReserve.duration}}小时</span></p>
+        </dt>
+        <dd>
+          <ul class="s_now_btns">
+            <li class="s_btn qd" v-if="unlockBtnShow" @click="unlock(curReserve)">{{unlockBtnText}}</li>
+            <li class="s_btn" v-if="curReserve.status === 1 && curReserve.reserveMode === 0 && showRenewal(curReserve) " @click="reReserve(curReserve.roomId,curReserve.seatNum)">
+              续约
+            </li>
+            <li class="s_btn" v-if="leaveBtnShow(curReserve)" @click="askLeave(curReserve.id)">暂离</li>
+            <li class="s_btn tz" v-if="signBackBtnShow(curReserve)" @click.stop="askSignBack(curReserve)">退座</li>
+            <li class="s_btn qd" v-if="signInBtnShow(curReserve) && !goPayBtnShow(curReserve)" @click="signIn(curReserve)">签到</li>
+            <li class="s_btn qd" v-if="beSeatedBtnShow(curReserve)" @click="signIn(curReserve)">落座</li>
+            <li class="s_btn qd" v-if="goPayBtnShow(curReserve)" @click="goPay(curReserve)">去支付</li>
+            <li class="s_btn" v-if="curReserve.status === 0" @click.stop="askCancel(curReserve.id)">取消</li>
+          </ul>
+        </dd>
+      </dl>
+    </div>
+    
+    <div class="screenMask" v-if="cancelShow || signBackShow || leaveShow || logOutShow || openDialog"></div>
+    <div class="quit_pop leave_pop" v-if="cancelShow">
+      <div class="quit_top" style="text-align: center">确定要取消此次预约吗？</div>
+      <div class="quit_btm">
+        <span @click="cancel(false)">取消</span>
+        <span class="quit_sure" @click="cancel(true)">确认</span>
+      </div>
+    </div>
+    <div class="quit_pop leave_pop" v-if="signBackShow">
+      <div class="quit_top">退座后座位将被释放，确认结束本次使用</div>
+      <div class="quit_btm">
+        <span @click="signBack(false)">取消</span>
+        <span class="quit_sure" @click="signBack(true)">确认</span>
+      </div>
+    </div>
+    
+    <div class="quit_pop leave_pop" v-if="leaveShow">
+      <div class="quit_top">座位将为您保留<br/>但您需要在规定时间内返回<br/>否则座位将被释放，确定暂离吗？</div>
+      <div class="quit_btm">
+        <span @click="leave(false)">取消</span>
+        <span class="quit_sure" @click="leave(true)">确认</span>
+      </div>
+    </div>
+    <template v-if="reservationEntrance.recentlyReserve">
+      <h6 class="s_near_title">最近预约</h6>
+      
+      <div class="s_near_nodata" v-if="notNearReserves">
+        <div class="nera_nodata_img"></div>
+        <p class="near_nodata_word">暂无最近预约</p>
+      </div>
+      
+      <ul class="s_near_data" v-if="!notNearReserves">
+        <li class="s_near_info" v-for="data in nearReserves">
+          <h6 class="s_name">{{data.seatNum}}号座位
+            <label class="s_time"><span>{{data.startTime | format('HH:mm')}}-{{data.endTime | format('HH:mm')}}</span><span>{{data.duration}}小时</span></label></h6>
+          <p class="s_addr">{{data.firstLevelName}} <span class="s_btn" @click="reReserve(data.roomId,data.seatNum)" v-if="reservationEntrance.againReserve">再次预约</span></p>
+        </li>
+      </ul>
+    </template>
+    
+    <div class="cal_pop" v-if="logOutShow">
+      <div class="cal_top">确定退出账号?</div>
+      <div class="cal_btm">
+        <span @click="logOutShow=false">取消</span>
+        <span class="wait_sure" @click="logOut">确认</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="reminder_pop" v-show="openDialog">
+    <h6 class="rp_top" v-show="openDialogType == 0">{{seatConfig.dialogTitle}}</h6>
+    <h6 class="rp_top" v-show="openDialogType == 1">{{seatConfig.noticeName}}</h6>
+    <div class="rp_cont">
+      <div id="rich_text"></div>
+    </div>
+    <div class="notice_confirm" v-show="openDialogType == 0 && seatConfig.dialogAgree == 1">
+      <span class="icon_radio" :class="{'icon_check': dialogAgreeStatus}" @click="dialogAgreeStatus = !dialogAgreeStatus"></span>
+      <span>我已阅读并同意相关内容</span>
+    </div>
+    <div class="rp_bottom">
+      <span class="rp_cal" v-show="openDialogType == 0" @click="back()">取消</span>
+      <span class="rp_sure" :class="{disabled: openDialogType == 0 && seatConfig.dialogAgree == 1 && !dialogAgreeStatus}" @click="start()">开始预约</span>
+    </div>
+  </div>
+  
+  <div class="screenMask" style="z-index: 3" v-if="bindSnoShow"></div>
+  
+  <div class="reminder_pop" style="z-index: 4" v-if="bindSnoShow">
+    <h6 class="rp_top">绑定提示</h6>
+    <div class="rp_cont">
+      <p class="rp_cont_word">您未绑定学工号/一卡通账号，无法使用全部功能，请绑定后再预约</p>
+    </div>
+    <div class="rp_bottom">
+      <span class="rp_cal" @click="back()">取消</span>
+      <span class="rp_sure" @click="goBindSno()">去绑定</span>
+    </div>
+  </div>
+  
+  <div class="pop_wrap" v-show="qrCodeDialog.show">
+    <div class="code_pop">
+      
+      <template v-if="showCode">
+        <div class="code_pic" v-if="!qrCodeDialog.isSign">
+          <img v-show="qrCodeDialog.imgShow" :src="qrCodeDialog.url" alt="">
+          <span>请将二维码对准扫码设备扫描</span>
+        </div>
+        <div class="success_tip" v-else>
+          <span class="error_pic"></span>
+          <h1>签到成功</h1>
+        </div>
+      </template>
+      
+      <div class="psd_box" v-if="seatConfig.qrcodeOpen == 22">
+        <span class="psd_pic"></span>
+        <h1 class="psd_num">{{qrCodeDialog.password}}</h1>
+        <p class="psd_txt">请在预约区域门禁设备处输入此密码</p>
+      </div>
+      <div class="pop_btm" @click="location.reload()">关闭</div>
+    </div>
+  </div>
+  
+  <div class="pop_wrap" v-show="unlockCodeDialog.show">
+    <div class="code_pop">
+      
+      <div class="code_pic">
+        <img v-show="unlockCodeDialog.imgShow" :src="unlockCodeDialog.url" alt="">
+        <span>请将二维码对准扫码设备扫描</span>
+      </div>
+      <div class="pop_btm" @click="location.reload()">关闭</div>
+    </div>
+  </div>
+  
+  <transition name="model-mask">
+    <div class="model-pop-mask reserve-info-pop-mask" v-if="reserveInfo.show" @click.stop="toggleReserveInfo(null)">
+      <div class="model-popup reserve-info-pop-wrap" @click.stop>
+        <div class="popup-title owt1">预约信息</div>
+        <span class="popup-close" @click.stop="toggleReserveInfo(null)">关闭</span>
+        <div class="popup-body">
+          <h1 class="reserve-time">{{reserveInfo.data.startTime | format('HH:mm')}}-{{reserveInfo.data.endTime | format('HH:mm')}}</h1>
+          <h2 class="reserve-date">{{reserveInfo.data.startTime | format('YYYY-MM-DD')}}</h2>
+          <p class="reserve-place owt1">
+            <span>{{reserveInfo.data.firstLevelName}}</span>
+            <span v-if="reserveInfo.data.secondLevelName">-{{reserveInfo.data.secondLevelName}}</span>
+            <span v-if="reserveInfo.data.thirdLevelName">-{{reserveInfo.data.thirdLevelName}}</span>
+            <span>&nbsp;{{reserveInfo.data.seatNum}}&nbsp;号</span>
+          </p>
+          <h1 class="reserve-userName owt1">{{reserveInfo.data.uname}}</h1>
+          <h1 class="reserve-status"
+              :class="{'orange': reserveInfo.data.status==0||reserveInfo.data.status==3, 'blue': reserveInfo.data.status==1, 'red': reserveInfo.data.status==5}">
+            {{reserveInfo.data.statusStr}}
+          </h1>
+          <p class="tip-txt">当前时间</p>
+          <p class="current-time">{{reserveInfo.currentTime | format('YYYY-MM-DD HH:mm:ss')}}</p>
+        </div>
+      </div>
+    </div>
+  </transition>
+  
+  <div class="res_loading" v-if="loadingShow">
+    <div class="res_load_cont">
+      <div class="loading_iocn"></div>
+      <p class="loading_info">{{tipTitle}}</p>
+    </div>
+  </div>
+</div>
+<script>
+  window.addEventListener('pageshow', function (e) {
+    //如果检测到页面是从“往返缓存”中读取的，刷新页面
+    if (e.persisted) {
+      window.location.reload()
+    }
+  })
+  require(['jquery', 'Vue', 'moment', 'popup', 'jweixin', 'wxinit', 'baseUtils', 'cookies', 'thirdAppUtils', 'multieditor', 'webUploader', 'sortable', 'cropper', 'clipboard',
+    'Viewer', 'jrxyUtils',  'sha'], function ($, Vue, moment, popup, wx, wxinit, BaseUtils, Cookies, thirdAppUtils, multieditor, WebUploader, Sortable, Cropper, Clipboard, Viewer, JrxyUtils) {
+    'use strict'
+    window['WebUploader'] = WebUploader
+    window['Sortable'] = Sortable
+    window['Cropper'] = Cropper
+    window['clipboard'] = Clipboard
+    window['Viewer'] = Viewer
+    var userLoginInfo = {"userInfo":{"deptId":22640,"id":21466273,"inserttime":1772636462000,"mobile":"135****9492","signature":"","sno":"","uid":238771432,"uname":"王红新","updatetime":1772636462000}}||{}
+    var user = userLoginInfo && userLoginInfo.userInfo
+    var deptIdEnc = '4a18e12602b24c8c',
+        mark = '0',
+        serverNow = new Date('2026-03-04T23:10:49.711+08:00'),
+        mappId = '0',
+        pageKey = 'seat_index_page_' + Cookies.get('oa_deptid') + '_' + Cookies.get('oa_uid'),
+        dialogKey = 'seat_dialog_' + Cookies.get('oa_deptid') + '_' + Cookies.get('oa_uid')
+    function operateData(url, data) {
+      return $.getJSON(url, data)
+    }
+    function signInScan(_this, data) {
+      var now = moment()
+      //判断是否存在未签退座位
+      operateData('data/apps/seat/check/exist', {seatNum: data.seatNum, roomId: data.roomId}).then(function (json) {
+        if (json.success) {
+          if (json.data.existCount > 0) {
+            popup.alert('您存在未签退座位，不可再次签到')
+          } else {
+            var scannerType = wxinit.getScannerType()
+            scannerType = BaseUtils.getThirdScannerDept(_this.seatConfig.deptId, scannerType)
+            if (data.status === 0 || data.status === 3 || data.status === 5) {
+              if (data.status === 0) {
+                var signDuration = json.data.signDuration
+                var preSignDuration = json.data.preSignDuration //定制需求，弹性签到只能向后弹
+                if (signDuration === -1) {
+                  if (now.isBefore(moment(data.startTime).add(-preSignDuration, 'minutes'))) {
+                    popup.alert('还未到签到时间')
+                    return
+                  }
+                  if (now.isAfter(moment(data.endTime))) {
+                    popup.alert('签到时间已过', '确认', function () {
+                      location.reload()
+                    })
+                    return
+                  }
+                } else {
+                  if (now.isBefore(moment(data.startTime).add(-preSignDuration, 'minutes'))) {
+                    popup.alert('还未到签到时间')
+                    return
+                  }
+                  if (moment(data.expireTime).isBefore(now)) {
+                    popup.alert('签到时间已过', '确认', function () {
+                      location.reload()
+                    })
+                    return
+                  }
+                }
+              }
+              if (data.status === 3 || data.status === 5) {
+                if (moment(data.expireTime).isBefore(now)) {
+                  popup.alert('落座时间已过')
+                  location.reload()
+                  return
+                }
+              }
+              if (_this.showCode) {
+                getQrcode(_this, data)
+                return
+              }
+              //判断是否需要扫码
+              if (data.isPosition === 2) {//仅判断位置
+                location.href = location.origin + '/front/third/apps/seat/code?seatNum=' + data.seatNum + '&id=' + data.roomId
+              } else if (data.isPosition === 0 || data.isPosition === 1) {//扫座位码
+                switch (scannerType) {
+                  case 0:
+                    wx.scanQRCode({
+                      needResult: 1,
+                      desc: 'scanQRCode desc',
+                      success: function (res) {
+                        var qrUrl = res.resultStr
+                        if (qrUrl != undefined && qrUrl != null && qrUrl != '' && qrUrl.indexOf('front/apps/seat/code') != -1) {
+                          location.href = qrUrl + '&num=' + data.seatNum + '&reserveId=' + data.id + '&room=' + data.roomId
+                        } else {
+                          popup.alert('请扫描正确的二维码')
+                        }
+                      }
+                    })
+                    break
+                  case 1:
+                    location.href = 'http://sao315.com/w/api/saoyisao?redirect_uri=' + encodeURIComponent(location.href + '&num='
+                        + data.seatNum + '&reserveId=' + data.id + '&room=' + data.roomId)
+                    break
+                  case 2:
+                    location.href = 'https://office.chaoxing.com/api/wx/front/apps/reserve/scanner?redirect_uri=' +
+                        encodeURIComponent(location.href + '&num='
+                            + data.seatNum + '&reserveId=' + data.id + '&room=' + data.roomId)
+                    break
+                  case 124841:
+                    thirdAppUtils.barcode.scan().then(function (res) {
+                      location.href = res + '&num=' + data.seatNum + '&reserveId=' + data.id + '&room=' + data.roomId
+                    })
+                    break
+                  case 23677:
+                    thirdAppUtils.barcode.lzcsScan().then(function (res) {
+                      location.href = res + '&num=' + data.seatNum + '&reserveId=' + data.id + '&room=' + data.roomId
+                    })
+                    break
+                  case 33155:
+                    setTimeout(function () {
+                      if (_this.initJrxyApiSuccess) {
+                        JrxyUtils.scan($.Deferred()).done(function (res) {
+                          if (res.success) {
+                            location.href = res.url + '&num=' + data.seatNum + '&reserveId=' + data.id + '&room=' + data.roomId
+                          } else {
+                            popup.alert('扫码失败')
+                          }
+                        })
+                      } else {
+                        popup.alert('今日校园环境初始化失败，请刷新页面重试')
+                      }
+                    }, 1000)
+                    break
+                  default:
+                    break
+                }
+              } else if (data.isPosition === 3 || data.isPosition === 7) {//扫统一二维码
+                switch (scannerType) {
+                  case 0:
+                    wx.scanQRCode({
+                      needResult: 1,
+                      desc: 'scanQRCode desc',
+                      success: function (res) {
+                        var qrUrl = res.resultStr
+                        if (qrUrl != undefined && qrUrl != null && qrUrl != '' && qrUrl.indexOf('front/apps/seat/unified/code') != -1) {
+                          location.href = qrUrl + '&seatNum=' + parseInt(data.seatNum) + '&reserveId=' + data.id + '&id=' + data.roomId
+                        } else {
+                          popup.alert('请扫描正确的二维码')
+                        }
+                      }
+                    })
+                    break
+                  case 1:
+                    location.href = 'http://sao315.com/w/api/saoyisao?redirect_uri=' + encodeURIComponent(location.href + '&seatNum=' + parseInt(data.seatNum)
+                        + '&reserveId=' + data.id + '&id=' + data.roomId)
+                    break
+                  case 2:
+                    location.href = 'https://office.chaoxing.com/api/wx/front/apps/reserve/scanner?redirect_uri=' +
+                        encodeURIComponent(location.href + '&seatNum=' + parseInt(data.seatNum)
+                            + '&reserveId=' + data.id + '&id=' + data.roomId)
+                    break
+                  case 124841:
+                    thirdAppUtils.barcode.scan().then(function (res) {
+                      location.href = res + '&seatNum=' + parseInt(data.seatNum) + '&reserveId=' + data.id + '&id=' + data.roomId
+                    })
+                    break
+                  case 23677:
+                    thirdAppUtils.barcode.lzcsScan().then(function (res) {
+                      location.href = res + '&seatNum=' + parseInt(data.seatNum) + '&reserveId=' + data.id + '&id=' + data.roomId
+                    })
+                    break
+                  case 33155:
+                    setTimeout(function () {
+                      if (_this.initJrxyApiSuccess) {
+                        JrxyUtils.scan($.Deferred()).done(function (res) {
+                          if (res.success) {
+                            location.href = res.url + '&seatNum=' + parseInt(data.seatNum) + '&reserveId=' + data.id + '&id=' + data.roomId
+                          } else {
+                            popup.alert('扫码失败')
+                          }
+                        })
+                      } else {
+                        popup.alert('今日校园环境初始化失败，请刷新页面重试')
+                      }
+                    }, 1000)
+                    break
+                  default:
+                    break
+                }
+              } else if (data.isPosition === 4) {
+                switch (scannerType) {
+                  case 0:
+                    wx.scanQRCode({
+                      needResult: 1,
+                      desc: 'scanQRCode desc',
+                      success: function (res) {
+                        var qrUrl = res.resultStr
+                        if (qrUrl != undefined && qrUrl != null && qrUrl != '' && qrUrl.indexOf('front/apps/seat/dynamic/code') != -1) {
+                          location.href = qrUrl + '&seatNum=' + parseInt(data.seatNum) + '&reserveId=' + data.id + '&room=' + data.roomId
+                        } else {
+                          popup.alert('请扫描正确的二维码')
+                        }
+                      }
+                    })
+                    break
+                  case 1:
+                    location.href = 'http://sao315.com/w/api/saoyisao?redirect_uri=' + encodeURIComponent(location.href + '&seatNum=' + parseInt(data.seatNum)
+                        + '&reserveId=' + data.id + '&room=' + data.roomId)
+                    break
+                  case 2:
+                    location.href = 'https://office.chaoxing.com/api/wx/front/apps/reserve/scanner?redirect_uri=' +
+                        encodeURIComponent(location.href + '&seatNum=' + parseInt(data.seatNum)
+                            + '&reserveId=' + data.id + '&room=' + data.roomId)
+                    break
+                  case 124841:
+                    thirdAppUtils.barcode.scan().then(function (res) {
+                      location.href = res + '&seatNum=' + parseInt(data.seatNum) + '&reserveId=' + data.id + '&room=' + data.roomId
+                    })
+                    break
+                  case 23677:
+                    thirdAppUtils.barcode.lzcsScan().then(function (res) {
+                      location.href = res + '&seatNum=' + parseInt(data.seatNum) + '&reserveId=' + data.id + '&room=' + data.roomId
+                    })
+                    break
+                  case 33155:
+                    setTimeout(function () {
+                      if (_this.initJrxyApiSuccess) {
+                        JrxyUtils.scan($.Deferred()).done(function (res) {
+                          if (res.success) {
+                            location.href = res.url + '&seatNum=' + parseInt(data.seatNum) + '&reserveId=' + data.id + '&room=' + data.roomId
+                          } else {
+                            popup.alert('扫码失败')
+                          }
+                        })
+                      } else {
+                        popup.alert('今日校园环境初始化失败，请刷新页面重试')
+                      }
+                    }, 1000)
+                    break
+                  default:
+                    break
+                }
+              } else if (data.isPosition === 5 || data.isPosition === 6) {
+                if (data.isPosition === 5 && _this.jrxyDeptList.indexOf(_this.seatConfig.deptId) !== -1) {
+                  location.href = location.origin + '' + '/front/third/apps/seat/code?seatNum=' + data.seatNum + '&id=' + data.roomId + '&deptIdEnc=' + deptIdEnc
+                  return
+                }
+                BaseUtils.launchStudy()
+              } else if (data.isPosition === 8 && _this.bjjtApp) {
+                if (!_this.signInBtnStatus) {
+                  return
+                }
+                _this.signInBtnStatus = false
+                var res = BaseUtils.inRoom(_this.seatConfig.deptId, data.uid)
+                if (!res.responseJSON.success) {
+                  _this.signInBtnStatus = true
+                  popup.alert(res.responseJSON.msg, '确认', function () {
+                    location.reload()
+                  })
+                  return
+                }
+                operateData('data/apps/seat/sign', {id: data.id}).then(function (json) {
+                  if (json.success) {
+                    popup.alert('签到成功', '确认', function () {
+                      location.reload()
+                    })
+                  } else {
+                    popup.alert(json.msg)
+                  }
+                  setTimeout(function () {
+                    _this.signInBtnStatus = true
+                  }, 1000)
+                })
+              }
+            }
+          }
+        }
+      })
+    }
+    function getQrcode(_this, data) {
+      operateData('data/apps/seat/getqrcode', {reserveId: data.id}).then(function (json) {
+        if (json.success) {
+          var seconds = 60
+          _this.refreshObj = setInterval(function () {
+            seconds--
+            operateData('data/apps/seat/getstatus', {reserveId: data.id}).then(function (res) {
+              if (!res.success) {
+                popup.alert(res.msg, '我知道了', function () {
+                  location.reload()
+                })
+              } else {
+                if (res.data.isSign) {
+                  clearInterval(_this.refreshObj)
+                  _this.qrCodeDialog.imgShow = false
+                  _this.qrCodeDialog.isSign = true
+                }
+              }
+            })
+            if (seconds <= 0) {
+              clearInterval(_this.refreshObj)
+              _this.qrCodeDialog.imgShow = false
+              _this.qrCodeDialog.show = false
+            }
+          }, 1000)
+          _this.qrCodeDialog.url = json.data.url
+          _this.qrCodeDialog.imgShow = true
+          _this.qrCodeDialog.show = true
+        } else {
+          popup.alert(json.msg, '我知道了', function () {
+            location.reload()
+          })
+        }
+      })
+    }
+    
+    /**
+     * 退座
+     */
+    function doRequestSignBack(_this, reserveId, objectId) {
+      operateData('data/apps/seat/signback', {id: reserveId, objectId: objectId}).then(function (json) {
+        if (json.success) {
+          popup.alert('退座成功', '我知道了', function () {
+            location.reload()
+          })
+        } else {
+          popup.alert(json.msg, '我知道了', function () {
+            location.reload()
+          })
+        }
+      })
+    }
+    
+    new Vue({
+      el: '.seat_index',
+      data: function () {
+        return {
+          seatConfig: {},
+          nearReserves: [],
+          notNearReserves: false,
+          curReserves: [],
+          notCurReserves: false,
+          countDown: '00:00:00',
+          itemId: '',
+          cancelShow: false,
+          signBackShow: false,
+          leaveShow: false,
+          logOutShow: false,
+          openDialog: false,
+          openDialogType: 0, //0/1 通知/公告
+          scannerType: 1, // 0/1 微信官方扫码/sao315
+          qrCodeDialog: {
+            show: false,
+            url: '',
+            imgShow: false,
+            isSign: false,
+            password: ''
+          },
+          bindSnoShow: 'false' === 'true',
+          bindSnoUrl: decodeURIComponent(''),
+          hideLoginOut: false,
+          reserveInfo: {
+            show: false,
+            data: {},
+            currentTime: '',
+            currentTimeObj: {}
+          },
+          refreshObj: null,
+          showCode: false,
+          officeDomain: '',
+          dialogAgreeStatus: false,
+          unlockCodeDialog: {
+            show: false,
+            url: '',
+            imgShow: false
+          },
+          jrxyDeptList: [21027, 33155],
+          hideRulePageTab: false,
+          loadingShow: false,
+          tipTitle: '加载中...', //定制弹性签到时间只向后弹：新乡医学院
+          customLoginUrl: {}, //自定义登录/登出配置
+          roleChangeBtnShow: false,
+          photoDomain: photoUrl,
+          userInfo: user || {},
+          initJrxyApiSuccess: false,
+          reservationEntrance: {
+            defaultReserve: true,
+            liveReserve: true,
+            againReserve: true,
+            recentlyReserve: true,
+            onlySupportsApiSignIn: true
+          },
+          bjjtApp: false,
+          signInBtnStatus: true
+        }
+      },
+      computed: {
+        unlockBtnShow: function () {
+          return [12, 13, 14, 15, 16, 21, 22].indexOf(this.seatConfig.qrcodeOpen) !== -1
+        },
+        unlockBtnText: function () {
+          return this.seatConfig.qrcodeOpen === 12 ? '开锁' : '开锁码'
+        },
+        customNoticeShow: function () {
+          return this.seatConfig.isNotice && ((this.seatConfig.noticeVersion === 0 && this.seatConfig.noticeName && this.seatConfig.noticeUrl)
+              || this.seatConfig.noticeVersion === 1)
+        },
+        defaultNoticeShow: function () {
+          return !this.hideRulePageTab && ((this.customNoticeShow && this.seatConfig.defaultNoticeShow) || !this.customNoticeShow)
+        }
+      },
+      methods: {
+        logOut: function () {
+          var _this = this
+          operateData('front/apps/reserve/user/login/logout', {}).then(function (res) {
+            if (res.success) {
+              if (!$.isEmptyObject(_this.customLoginUrl)) {
+                if (_this.customLoginUrl.loginOutUrl) {
+                  location.href = _this.customLoginUrl.loginOutUrl
+                  return
+                }
+                location.href = _this.customLoginUrl.loginUrl
+                return
+              }
+              var passport2Host = 'https://passport2.chaoxing.com'
+              location.href = passport2Host + '/logout.html?refer=' + encodeURIComponent(passport2Host + '/login?loginType=1&newversion=true&fid=&refer=' + encodeURIComponent(location.href))
+            } else {
+              popup.alert(res.msg, '我知道了', function () {
+                location.reload()
+              })
+            }
+          })
+        },
+        toSeatListPage: function () {
+          var serverTime = serverNow.getHours() + serverNow.getMinutes() / 60
+          var configTime = parseInt(this.seatConfig.reserveBeforeTime.split(':')[0]) + parseInt(this.seatConfig.reserveBeforeTime.split(':')[1]) / 60
+          //假如设置提前预约日期为当天，且当前时间小于提前预约时间，则无法进入快速选座界面
+          if (this.seatConfig.reserveBeforeDay === 0 && serverTime < configTime) {
+            popup.alert(this.seatConfig.reserveBeforeTime + '后可预约')
+            return
+          }
+          //贵州师范学院图书馆定制
+          if (this.seatConfig.deptId === 125705) {
+            $.ajax({
+              url: 'data/apps/seat/room/list',
+              async: true,
+              data: {
+                cpage: 1,
+                pageSize: 2,
+                deptIdEnc: deptIdEnc
+              },
+              type: 'post',
+              dataType: 'json',
+              success: function (json) {
+                if (json.success) {
+                  if (json.data.seatRoomList.length === 0) {
+                    popup.alert('暂无开放预约的区域')
+                    return
+                  }
+                  if (json.data.seatRoomList.length === 1) {
+                    var seatRoom = json.data.seatRoomList[0]
+                    moment().format('YYYY-MM-DD')
+                    location.href = location.origin + '' + '/front/third/apps/seat/select?deptIdEnc=' + deptIdEnc
+                        + '&id=' + seatRoom.id
+                        + '&day=' + moment().format('YYYY-MM-DD')
+                        + '&backLevel=1'
+                        + '&fidEnc=' + deptIdEnc
+                    return
+                  }
+                  location.href = location.origin + '' + '/front/third/apps/seat/list?deptIdEnc=' + deptIdEnc
+                }
+              }
+            })
+          } else {
+            location.href = location.origin + '' + '/front/third/apps/seat/list?deptIdEnc=' + deptIdEnc
+          }
+        },
+        sceneChoseSeat: function () {
+          var serverTime = serverNow.getHours() + serverNow.getMinutes() / 60
+          var configTime = parseInt(this.seatConfig.reserveBeforeTime.split(':')[0]) + parseInt(this.seatConfig.reserveBeforeTime.split(':')[1]) / 60
+          //假如设置提前预约日期为当天，且当前时间小于提前预约时间，则无法进入快速选座界面
+          if (this.seatConfig.reserveBeforeDay === 0 && serverTime < configTime) {
+            popup.alert(this.seatConfig.reserveBeforeTime + '后可预约')
+            return
+          }
+          location.href = location.origin + '' + '/front/third/apps/seat/live/select?deptIdEnc=' + deptIdEnc
+        },
+        toReserveListPage: function () {
+          location.href = location.origin + '' + '/front/third/apps/seat/reserve/list?deptIdEnc=' + deptIdEnc
+        },
+        goNotice: function () {
+          if (this.seatConfig.noticeVersion === 0 && this.seatConfig.noticeName && this.seatConfig.noticeUrl) {
+            location.href = this.seatConfig.noticeUrl
+          } else if (this.seatConfig.noticeVersion === 1) {
+            MultiEditor.renderRichtext('rich_text', this.seatConfig.noticeContent)
+            this.openDialogType = 1
+            this.openDialog = true
+          } else {
+            popup.alert('请确认已配置有效公告')
+          }
+        },
+        toRulePage: function () {
+          location.href = location.origin + '' + '/front/third/apps/seat/rule?deptIdEnc=' + deptIdEnc
+        },
+        askCancel: function (id) {
+          var _this = this
+          _this.cancelShow = true
+          _this.itemId = id
+        },
+        cancel: function (flag) {
+          var _this = this
+          if (flag) {
+            _this.loadingShow = true
+            operateData('data/apps/seat/cancel', {id: _this.itemId}).then(function (data) {
+              _this.loadingShow = false
+              if (data.success) {
+                popup.alert('取消成功', '我知道了', function () {
+                  location.reload()
+                })
+              } else {
+                popup.alert(data.msg, '我知道了', function () {
+                  location.reload()
+                })
+              }
+            })
+          }
+          _this.itemId = ''
+          _this.cancelShow = false
+        },
+        askSignBack: function (data) {
+          this.signBackShow = true
+          this.itemId = data.id
+        },
+        signBack: function (flag) {
+          var _this = this
+          if (flag) {
+            var reserveId = _this.itemId
+            //签退拍照配置，支持特殊区域规则
+            var signBackPhoto = _this.seatConfig.signBackPhoto
+            var curReserve = _this.curReserves.find(function (item) {
+              return item.id === reserveId
+            })
+            //如果存在特殊区域配置，优先按照特殊区域规则处理
+            if (curReserve && curReserve.hasOwnProperty('signBackPhoto')) {
+              signBackPhoto = curReserve.signBackPhoto
+            }
+            if (signBackPhoto === 1) { //开启签退拍照
+              wx.chooseImage({
+                count: 1, // 默认9
+                sizeType: ['compressed'], //压缩图
+                sourceType: ['camera'], // 指定来源是相机
+                success: function (res1) {
+                  wx.getLocalImgData({
+                    localId: res1.localIds[0], // 图片的localID
+                    success: function (res2) {
+                      var formData = new FormData()
+                      formData.append('file', BaseUtils.base64ToFile(res2.localData, new Date().getTime()))
+                      $.ajax({
+                        type: 'POST',
+                        url: 'data/filedata/apps/reservepc/web/file/upload',
+                        data: formData,
+                        contentType: false,
+                        processData: false,
+                        enctype: 'multipart/form-data',
+                        async: false,
+                        success: function (res3) {
+                          if (res3.success) {
+                            doRequestSignBack(_this, reserveId, res3.data.result.objectId)
+                          }
+                        }
+                      })
+                    }
+                  })
+                }
+              })
+            } else {
+              doRequestSignBack(_this, reserveId)
+            }
+          }
+          _this.itemId = ''
+          _this.signBackShow = false
+        },
+        askLeave: function (id) {
+          var _this = this
+          _this.leaveShow = true
+          _this.itemId = id
+        },
+        leave: function (flag) {
+          var _this = this
+          if (flag) {
+            operateData('data/apps/seat/leave', {id: _this.itemId}).then(function (json) {
+              if (json.success) {
+                popup.alert('暂离成功', '我知道了', function () {
+                  location.reload()
+                })
+              } else {
+                popup.alert(json.msg, '我知道了', function () {
+                  location.reload()
+                })
+              }
+            })
+          }
+          _this.itemId = ''
+          _this.leaveShow = false
+        },
+        signIn: function (data) {
+          var _this = this
+          signInScan(_this, data)
+        },
+        reReserve: function (roomId, seatNum) {
+          var _this = this
+          //判断该区域是否可以预约
+          operateData('data/apps/seat/room/info', {id: roomId, fidEnc: '4a18e12602b24c8c'}).then(function (json) {
+            if (json.success && json.data.seatRoom) {
+              var seatConfig = json.data.seatConfig
+              var serverTime = serverNow.getHours() + serverNow.getMinutes() / 60
+              var configTime = parseInt(seatConfig.reserveBeforeTime.split(':')[0]) + parseInt(seatConfig.reserveBeforeTime.split(':')[1]) / 60
+              //假如设置提前预约日期为当天，且当前时间小于提前预约时间，则无法进入快速选座界面
+              if (seatConfig.reserveBeforeDay === 0 && serverTime < configTime) {
+                popup.alert(seatConfig.reserveBeforeTime + '后可预约')
+                return
+              }
+              var seatRoom = json.data.seatRoom
+              if (seatRoom.status == 1) {
+                popup.alert('该区域已暂停预约')
+                return
+              }
+              if (seatRoom.isShow == 1) {
+                popup.alert('该区域仅支持现场预约')
+                return
+              }
+              if (seatRoom.isOpen == 1) {
+                popup.alert('该区域已暂停预约')
+                return
+              }
+              if (seatRoom.startSeatNum > parseInt(seatNum)) {
+                popup.alert('该座位已被移除')
+                return
+              }
+              var seatAttributes = json.data.seatAttributes
+              for (var i = 0; i < seatAttributes.length; i++) {
+                var seat = seatAttributes[i]
+                if (seat.isReserve == 0 && seatNum == seat.seatNum) {
+                  popup.alert('该座位已暂停预约')
+                  return
+                }
+              }
+              /**
+               * 此处镜像使用注释的跳转 不用officeDomain 否则可能报错
+               */
+              location.href = _this.officeDomain + '/front/third/apps/seat/select?id=' + roomId + '&day=' + moment(new Date())
+                  .format('YYYY-MM-DD') + '&seatNum=' + seatNum + '&backLevel=1&fidEnc=' + deptIdEnc
+              // location.href = location.origin + '' + '/front/third/apps/seat/select?id=' + roomId + '&day=' + moment(new Date())
+              //     .format('YYYY-MM-DD') + '&seatNum=' + seatNum + '&backLevel=1'
+            } else {
+              popup.alert(json.msg)
+            }
+          })
+        },
+        getCountDown: function (timestamp) {
+          var self = this
+          var learnTimer = setInterval(function () {
+            var nowTime = new Date()
+            var endTime = new Date(new Date(timestamp))
+            var t = endTime.getTime() - nowTime.getTime()
+            if (t > 0) {
+              var day = Math.floor(t / 86400000)
+              var hour = Math.floor((t / 3600000) % 24)
+              var min = Math.floor((t / 60000) % 60)
+              var sec = Math.floor((t / 1000) % 60)
+              hour = hour < 10 ? '0' + hour : hour
+              min = min < 10 ? '0' + min : min
+              sec = sec < 10 ? '0' + sec : sec
+              var format = ''
+              if (day > 0) {
+                format = day + '天' + hour + ':' + min + ':' + sec
+              }
+              if (day <= 0 && hour > 0) {
+                format = hour + ':' + min + ':' + sec
+              }
+              if (day <= 0 && hour <= 0) {
+                format = min + ':' + sec
+              }
+              self.countDown = format
+            } else {
+              clearInterval(learnTimer)
+            }
+          }, 1000)
+        },
+        back: function () {
+          var _this = this
+          if (BaseUtils.thirdScannerVerify(_this.seatConfig.deptId)) {
+            location.href = 'http://www.close.com/'
+          } else {
+            WeixinJSBridge.call('closeWindow')
+          }
+        },
+        start: function () {
+          var _this = this
+          if (_this.openDialogType === 0 && _this.seatConfig.dialogAgree === 1 && !_this.dialogAgreeStatus) {
+            BaseUtils.showMoblieBtmTips('请确认已阅读并同意相关内容后再继续')
+            return
+          }
+          if (_this.openDialogType === 0) {
+            operateData('data/apps/seat/dialog', {dialogAgreeStatus: _this.dialogAgreeStatus}).then(function (json) {
+              if (!json.success) {
+                popup.alert(json.msg)
+                return
+              }
+              if (_this.seatConfig.openDialog === 1 && _this.seatConfig.dialogFrequency === 1) {
+                BaseUtils.addCache(dialogKey, new Date().getTime())
+              }
+              _this.openDialog = false
+            })
+          } else {
+            _this.openDialog = false
+          }
+        },
+        goBindSno: function () {
+          var _this = this
+          location.href = _this.bindSnoUrl
+        },
+        toggleReserveInfo: function (e) {
+          var _this = this
+          if (e) {
+            _this.reserveInfo.data = $.extend(true, {}, e)
+            if (e.status === 0) {
+              _this.reserveInfo.data['statusStr'] = '待履约'
+            }
+            if (e.status === 1) {
+              _this.reserveInfo.data['statusStr'] = '使用中'
+            }
+            if (e.status === 5) {
+              _this.reserveInfo.data['statusStr'] = '被监督中'
+            }
+            if (e.status === 3) {
+              _this.reserveInfo.data['statusStr'] = '暂离中'
+            }
+          }
+          clearInterval(_this.reserveInfo.currentTimeObj)
+          _this.reserveInfo.currentTime = moment()
+          _this.reserveInfo.currentTimeObj = setInterval(function () {
+            _this.reserveInfo.currentTime = moment()
+          }, 1000)
+          _this.reserveInfo.show = !_this.reserveInfo.show
+          if (!_this.reserveInfo.show) {
+            clearInterval(_this.reserveInfo.currentTimeObj)
+          }
+        },
+        unlock: function (data) {
+          var _this = this
+          var now = moment()
+          var qrCodeOpen = _this.seatConfig.qrcodeOpen
+          var signDuration = _this.seatConfig.signDuration
+          var preSignDuration = _this.seatConfig.preSignDuration
+          if (signDuration === -1) {
+            if (now.isBefore(moment(data.startTime).add(-30, 'minutes'))) {
+              popup.alert('未到签到时间')
+              return
+            }
+            if (qrCodeOpen === 12 && now.isAfter(moment(data.endTime))) {
+              popup.alert('签到时间已过')
+              return
+            }
+          } else {
+            if (now.isBefore(moment(data.startTime).add(-preSignDuration, 'minutes'))) {
+              popup.alert('还未到签到时间')
+              return
+            }
+            if (qrCodeOpen === 12 &&
+                moment(data.inserttime).isAfter(moment(data.startTime)) &&
+                moment(data.inserttime).add(signDuration, 'minutes').isBefore(now)) {
+              popup.alert('签到时间已过')
+              return
+            }
+            if (qrCodeOpen === 12 &&
+                moment(data.inserttime).isBefore(moment(data.startTime)) &&
+                moment(data.startTime).add(signDuration, 'minutes').isBefore(now)) {
+              popup.alert('签到时间已过')
+              return
+            }
+          }
+          //项目团队对接开锁
+          if (qrCodeOpen === 12) {
+            operateData('data/apps/seat/unlocking', {
+              deptId: _this.seatConfig.deptId,
+              reserveUserId: data.id,
+              roomId: data.roomId,
+              seatNum: data.seatNum
+            }).then(function (json) {
+              if (!json.success) {
+                popup.alert(json.msg)
+                return
+              }
+              popup.alert('开锁成功')
+            })
+            return
+          }
+          switch (qrCodeOpen) {
+            case 13:
+            case 14:
+            case 15:
+            case 16:
+            case 21:
+              operateData('data/apps/seat/unlock/qrcode', {reserveId: data.id, fidEnc: deptIdEnc}).then(function (json) {
+                if (!json.success) {
+                  popup.alert(json.msg)
+                  return
+                }
+                _this.unlockCodeDialog.url = json.data.url
+                _this.unlockCodeDialog.imgShow = true
+                _this.unlockCodeDialog.show = true
+              })
+              break
+            case 22:
+              _this.qrCodeDialog.password = data.uid.toString().slice(-6)
+              _this.qrCodeDialog.show = true
+              break
+            default:
+              break
+          }
+        },
+        // 判断续约按钮是否显示
+        showRenewal: function (curReserve) {
+          if (curReserve && curReserve.hasOwnProperty('renewal')) {
+            return curReserve.renewal != 0 //如果配置有特殊规，则优先使用
+          }
+          return this.seatConfig.renewal != 0
+        },
+        signInBtnShow: function (curReserve) {
+          if (curReserve.status === 0) {
+            if ([0, 12, 14, 15, 21, 22].indexOf(this.seatConfig.qrcodeOpen) !== -1 && this.reservationEntrance.onlySupportsApiSignIn) {
+              return true
+            }
+          }
+          return false
+        },
+        signBackBtnShow: function (curReserve) {
+          if ([1, 3, 5].indexOf(curReserve.status) !== -1) {
+            if ([0, 12, 14, 16, 21, 22].indexOf(this.seatConfig.qrcodeOpen) !== -1) {
+              return true
+            }
+          }
+          return false
+        },
+        goManagePage: function () {
+          BaseUtils.addCache(pageKey, '2')
+          location.href = location.origin + '' + '/front/third/apps/seat/manager/index?fidEnc=' + deptIdEnc + '&mappId=' + mappId
+        },
+        leaveBtnShow: function (curReserve) {
+          return curReserve.status === 1 && this.seatConfig.leaveDuration !== -1
+        },
+        beSeatedBtnShow: function (curReserve) {
+          return curReserve.status === 3 || curReserve.status === 5
+        },
+        goPay: function (e) {
+          operateData('data/apps/seat/verify/seatreserve/status', {id: e.id}).then(function (res) {
+            if (res.success) {
+              location.href = e.payUrl
+            } else {
+              popup.alert(res.msg, '确认', function () {
+                window.location.reload()
+              })
+            }
+          })
+        },
+        goPayBtnShow: function (e) {
+          return e.orderStatus !== undefined && e.orderStatus !== null && e.orderStatus !== 1
+        }
+      },
+      filters: {
+        format: function (value, formater) {
+          return moment(value).format(formater)
+        }
+      },
+      mounted: function () {
+        if (mark != 0) {
+          popup.alert('退座成功')
+        }
+        var _this = this
+        //获取模板信息
+        operateData('data/apps/seat/index', {fidEnc: deptIdEnc, r: Math.random() * 100}).then(function (json) {
+          if (json.success) {
+            _this.nearReserves = json.data.nearReserves
+            _this.officeDomain = json.data.officeDomain
+            if (json.data.seatConfig) {
+              _this.seatConfig = json.data.seatConfig
+              _this.hideRulePageTab = _this.seatConfig.deptId === 33483 || _this.seatConfig.deptId === 34199
+              _this.showCode = [29747, 29216].indexOf(_this.seatConfig.deptId) !== -1
+              _this.bjjtApp = _this.seatConfig.deptId === 24676 //北京交通大学定制
+            }
+            _this.openDialog = BaseUtils.dialogShow(
+                json.data.openDialog,
+                _this.seatConfig.openDialog,
+                _this.seatConfig.dialogFrequency,
+                BaseUtils.getCache(dialogKey)
+            )
+            BaseUtils.initEditor(_this.seatConfig.dialogContent)
+            if (_this.nearReserves.length === 0) {
+              _this.notNearReserves = true
+            }
+            if (json.data.customLoginUrl) {
+              _this.customLoginUrl = json.data.customLoginUrl
+              _this.hideLoginOut = !json.data.customLoginUrl.loginOutUrl;
+            }
+            if (_this.seatConfig.deptId === 32439) {
+              _this.hideLoginOut = true
+            }
+            _this.curReserves = json.data.curReserves
+            if (_this.curReserves.length === 0) {
+              _this.notCurReserves = true
+            }
+            _this.curReserves.forEach(function (value) {
+              if (value.status === 1 || value.status === 3 || value.status === 5) {
+                _this.getCountDown(value.expireTime)
+              }
+            })
+          }
+          if (location.href.indexOf('qrresult=') > -1) {
+            var url = decodeURIComponent(location.href.split('qrresult=')[1]),
+                roomIdByCode = parseInt(BaseUtils.getQueryVariable('id', url.split('?')[1])) | 0,
+                fid = parseInt(BaseUtils.getQueryVariable('fid', url.split('?')[1])) | 0,
+                reserveId = '0', //预约记录id
+                num = '',
+                room = '0',
+                id = '0',
+                signBack = '0',
+                seatNum = '0'
+            if ((_this.seatConfig.isPosition == 1 || _this.seatConfig.isPosition == 0) &&
+                url != undefined &&
+                url != null &&
+                url != '' &&
+                url.indexOf('front/apps/seat/code') != -1 &&
+                parseInt(room) === roomIdByCode) {
+              location.href = url + '&reserveId=' + reserveId + '&num=' + num + '&room=' + room + '&fidEnc=' + deptIdEnc
+            } else if ((_this.seatConfig.isPosition == 3 || _this.seatConfig.isPosition == 7) &&
+                url != undefined &&
+                url != null &&
+                url != '' &&
+                url.indexOf('front/apps/seat/unified/code') != -1) {
+              location.href = url + '&reserveId=' + reserveId + '&id=' + id + '&signBack=' + signBack + '&seatNum=' + seatNum
+            } else if (_this.seatConfig.isPosition == 4 &&
+                url != undefined &&
+                url != null &&
+                url != '' &&
+                url.indexOf('front/apps/seat/dynamic/code') != -1 &&
+                ((roomIdByCode !== 0 && parseInt(room) === roomIdByCode) || (fid !== 0))) {
+              location.href = url + '&reserveId=' + reserveId + '&signBack=' + signBack + '&seatNum=' + seatNum
+            } else {
+              popup.alert('请扫描正确的二维码', '确认', function () {
+                location.href = location.href.split('?')[0] + '?fidEnc=' + deptIdEnc
+              })
+            }
+          }
+          if (_this.jrxyDeptList.indexOf(_this.seatConfig.deptId) !== -1) {
+            var ele = document.createElement('script');
+            ele.setAttribute('type', 'text/javascript');
+            ele.setAttribute('src', 'https://static.campushoy.com/sdks/js/open/release/campushoy-2.0.5.js');
+            document.body.appendChild(ele);
+            JrxyUtils.initJrxy(_this)
+          }
+        })
+        operateData('data/apps/seat/identity/verify', {mappId: mappId, fidEnc: deptIdEnc}).then(function (json) {
+          if (json.success && (json.data.isManager || json.data.roomManager)) {
+            _this.roleChangeBtnShow = true
+            if (BaseUtils.getCache(pageKey) == 2) {
+              location.href = location.origin + '' + '/front/third/apps/seat/manager/index?fidEnc=' + deptIdEnc + '&mappId=' + mappId
+            }
+          }
+        })
+      },
+      created: function () {
+        var _this = this
+        wxinit.initWechatScanner(wx)
+        MultiEditor.init('detail')
+        operateData('data/apps/seat/entrance/config', {appType: 0, fidEnc: deptIdEnc}).then(function (json) {
+          if (json.success) {
+            _this.reservationEntrance.defaultReserve = json.data.defaultReserve
+            _this.reservationEntrance.liveReserve = json.data.liveReserve
+            _this.reservationEntrance.againReserve = json.data.againReserve
+            _this.reservationEntrance.recentlyReserve = json.data.recentlyReserve
+            _this.reservationEntrance.onlySupportsApiSignIn = json.data.onlySupportsApiSignIn
+          }
+        })
+      }
+    })
+  })
+</script>
+<script type="text/javascript">
+  require(['lever', 'ratio'], function (AlloyLever) {
+    'use strict'
+    AlloyLever.config({cdn: 'https://office-static.chaoxing.com/r/staticreserve/js/lib/lever/vconsole.min.js'})
+  })
+</script>
+</body>
+</html>
