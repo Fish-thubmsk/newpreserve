@@ -1,0 +1,53 @@
+# config/config.yml
+# 超星图书馆座位自动预约脚本配置文件
+
+# 目标日期模式：
+# - "tomorrow": 预约明天的座位（根据当前日期自动计算）
+# - "date": 指定具体日期（配合 target_date 使用）
+target_date_mode: "tomorrow"
+
+# 当 target_date_mode 为 "date" 时使用，格式：YYYY-MM-DD
+target_date: "2026-03-10"
+
+# 预约时间段
+# 参考：图书馆开放时间通常为 07:00-22:30
+time_range:
+  start: "08:00"
+  end: "22:30"
+
+# 座位优先级列表（按顺序尝试，一旦成功则停止）
+# 说明：seat_ids 是座位的数据库内部 ID（整数），不是贴在桌上的座位号
+# 如何获取：从抓包数据 data/apps/seat/seatgrid/roomid 接口的 seatDatas[].id 中查询
+# 示例（郑东校区 3楼 西阅览区，room_id: 13481）：
+#   seatNum "150" -> id 247536
+#   seatNum "001" -> id 247387
+seat_ids:
+  - 247536   # 座位号 150，郑东校区 3楼 西阅览区
+  - 247387   # 座位号 001，郑东校区 3楼 西阅览区
+  - 247388   # 座位号 002，郑东校区 3楼 西阅览区
+
+# 区域/房间参数
+# dept_id_enc：学校的加密标识，从抓包数据中提取
+#   在 front/third/apps/seat/select 页面 JS 中，变量名为 deptIdEnc 或 fidEnc
+# room_id：目标房间的 ID，在 seatgrid 接口响应的 otherDatas.roomId 中可确认
+area:
+  dept_id_enc: "4a18e12602b24c8c"
+  room_id: 13481
+  first_level: "郑东校区"    # 仅供参考，不参与请求
+  second_level: "3楼"         # 仅供参考，不参与请求
+  third_level: "西阅览区"      # 仅供参考，不参与请求
+
+# 运行行为参数
+behavior:
+  # 最多尝试的座位数量（超出后停止，防止发送过多请求）
+  max_seats_to_try: 5
+
+  # 每个座位尝试之间的间隔时间（秒），避免过于频繁请求
+  interval_seconds_between_seats: 0.2
+
+# 日志配置
+logging:
+  # 日志级别：DEBUG / INFO / WARNING / ERROR
+  level: "INFO"
+  # 日志文件路径（相对于脚本目录）；留空则只输出到控制台
+  file: "reserve.log"
