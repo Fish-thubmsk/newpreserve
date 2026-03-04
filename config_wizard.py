@@ -121,12 +121,31 @@ def index():
 
 @app.route("/api/levels")
 def api_levels():
-    """代理：获取校区列表。"""
+    """代理：获取楼层列表（一级/二级/三级）。
+
+    上游 API 参数说明：
+      type=0  返回一级（校区）列表
+      type=1  返回二级（楼层）列表，需同时传 firstLevelName
+      type=2  返回三级（区域）列表，需同时传 firstLevelName + secondLevelName
+    """
     cookie = request.args.get("cookie", "").strip() or load_cookie()
     dept_id_enc = request.args.get("deptIdEnc", "")
-    params = {}
+    level_type = request.args.get("type", "0")
+    first_level = request.args.get("firstLevel", "")
+    second_level = request.args.get("secondLevel", "")
+    if level_type not in ("0", "1", "2"):
+        return jsonify({"success": False, "msg": "type 参数无效，可选值为 0、1、2"}), 400
+    if level_type == "1" and not first_level:
+        return jsonify({"success": False, "msg": "type=1 时必须提供 firstLevel 参数"}), 400
+    if level_type == "2" and not (first_level and second_level):
+        return jsonify({"success": False, "msg": "type=2 时必须同时提供 firstLevel 和 secondLevel 参数"}), 400
+    params = {"type": level_type}
     if dept_id_enc:
         params["deptIdEnc"] = dept_id_enc
+    if first_level:
+        params["firstLevelName"] = first_level
+    if second_level:
+        params["secondLevelName"] = second_level
     data, err = proxy_get("/data/apps/seat/levels", params, cookie)
     if err:
         return jsonify({"success": False, "msg": err}), 502
@@ -453,7 +472,7 @@ $('btn-load-levels').addEventListener('click', async () => {
   setMsg('step1-msg', '加载中…', 'info');
   $('btn-load-levels').disabled = true;
 
-  const params = new URLSearchParams({ deptIdEnc });
+  const params = new URLSearchParams({ deptIdEnc, type: 0 });
   if (cookie) params.set('cookie', cookie);
 
   try {
@@ -493,7 +512,7 @@ $('first-level-select').addEventListener('change', async () => {
   if (!first) return;
 
   setMsg('step2-msg', '加载中…', 'info');
-  const params = new URLSearchParams({ deptIdEnc: state.deptIdEnc, firstLevel: first });
+  const params = new URLSearchParams({ deptIdEnc: state.deptIdEnc, firstLevel: first, type: 1 });
   if (state.cookie) params.set('cookie', state.cookie);
   try {
     const data = await apiFetch(`/api/levels?${params}`);
