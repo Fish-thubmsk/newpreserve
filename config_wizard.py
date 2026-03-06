@@ -159,6 +159,7 @@ def api_rooms():
     dept_id_enc = request.args.get("deptIdEnc", "")
     first_level = request.args.get("firstLevel", "")
     second_level = request.args.get("secondLevel", "")
+    third_level = request.args.get("thirdLevel", "")
     params = {
         "pageNum": 1,
         "pageSize": 100,
@@ -166,9 +167,11 @@ def api_rooms():
     if dept_id_enc:
         params["deptIdEnc"] = dept_id_enc
     if first_level:
-        params["firstLevel"] = first_level
+        params["firstLevelName"] = first_level
     if second_level:
-        params["secondLevel"] = second_level
+        params["secondLevelName"] = second_level
+    if third_level:
+        params["thirdLevelName"] = third_level
     data, err = proxy_get("/data/apps/seat/room/list", params, cookie)
     if err:
         return jsonify({"success": False, "msg": err}), 502
@@ -373,8 +376,12 @@ _HTML_TEMPLATE = r"""<!DOCTYPE html>
     </div>
   </div>
   <div class="field">
+    <label>区域（三级）</label>
+    <select id="third-level-select" disabled><option value="">-- 请先选楼层 --</option></select>
+  </div>
+  <div class="field">
     <label>阅览室</label>
-    <select id="room-select" disabled><option value="">-- 请先选楼层 --</option></select>
+    <select id="room-select" disabled><option value="">-- 请先选区域 --</option></select>
   </div>
   <div id="step2-msg"></div>
 </div>
@@ -503,7 +510,9 @@ $('first-level-select').addEventListener('change', async () => {
   const ss = $('second-level-select');
   ss.innerHTML = '<option value="">-- 请选择 --</option>';
   ss.disabled = !first;
-  $('room-select').innerHTML = '<option value="">-- 请先选楼层 --</option>';
+  $('third-level-select').innerHTML = '<option value="">-- 请先选楼层 --</option>';
+  $('third-level-select').disabled = true;
+  $('room-select').innerHTML = '<option value="">-- 请先选区域 --</option>';
   $('room-select').disabled = true;
   $('btn-load-seats').disabled = true;
   hide('step3');
@@ -526,24 +535,55 @@ $('first-level-select').addEventListener('change', async () => {
   }
 });
 
-// ---- Step 2: second level -> rooms ----
+// ---- Step 2: second level -> third level ----
 $('second-level-select').addEventListener('change', async () => {
   const second = $('second-level-select').value;
   state.secondLevel = second;
-  const rs = $('room-select');
-  rs.innerHTML = '<option value="">-- 请选择 --</option>';
-  rs.disabled = !second;
+  const ts = $('third-level-select');
+  ts.innerHTML = '<option value="">-- 请选择 --</option>';
+  ts.disabled = !second;
+  $('room-select').innerHTML = '<option value="">-- 请先选区域 --</option>';
+  $('room-select').disabled = true;
   $('btn-load-seats').disabled = true;
   hide('step3');
   hide('step4');
   setMsg('step2-msg', '');
   if (!second) return;
 
+  setMsg('step2-msg', '加载中…', 'info');
+  const params = new URLSearchParams({ deptIdEnc: state.deptIdEnc, firstLevel: state.firstLevel, secondLevel: second, type: 2 });
+  if (state.cookie) params.set('cookie', state.cookie);
+  try {
+    const data = await apiFetch(`/api/levels?${params}`);
+    const levels = data.data?.levels || [];
+    const thirds = [...new Set(levels.map(l => l.thirdLevelName).filter(Boolean))];
+    thirds.forEach(t => ts.add(new Option(t, t)));
+    ts.disabled = false;
+    setMsg('step2-msg', '');
+  } catch(e) {
+    setMsg('step2-msg', e.message, 'error');
+  }
+});
+
+// ---- Step 2: third level -> rooms ----
+$('third-level-select').addEventListener('change', async () => {
+  const third = $('third-level-select').value;
+  state.thirdLevel = third;
+  const rs = $('room-select');
+  rs.innerHTML = '<option value="">-- 请选择 --</option>';
+  rs.disabled = !third;
+  $('btn-load-seats').disabled = true;
+  hide('step3');
+  hide('step4');
+  setMsg('step2-msg', '');
+  if (!third) return;
+
   setMsg('step2-msg', '加载阅览室列表…', 'info');
   const params = new URLSearchParams({
     deptIdEnc: state.deptIdEnc,
     firstLevel: state.firstLevel,
-    secondLevel: second,
+    secondLevel: state.secondLevel,
+    thirdLevel: third,
   });
   if (state.cookie) params.set('cookie', state.cookie);
   try {
